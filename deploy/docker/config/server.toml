@@ -1,0 +1,34 @@
+# RSTunnel 演示配置（Docker compose）。生产请按 docs §44 调整，并用 ACME 证书（T-27）替代自签名。
+# 端口映射见 §48：443 TCP = HTTPS/Web/API/HTTP 隧道，443 UDP = QUIC。
+
+[http]
+bind = "0.0.0.0:80"          # HTTP 隧道入口（compose 映射 host 8080 -> 容器 80）
+
+[https]
+bind = "0.0.0.0:443"         # TLS 终止入口（演示无证书，仅监听；compose 映射 host 8443/tcp）
+
+[quic]
+bind = "0.0.0.0:443"         # UDP，Agent QUIC 隧道（与上方 TCP 443 不冲突）
+max_concurrent_bidi_streams = 10000
+max_concurrent_uni_streams = 1000
+idle_timeout_seconds = 60
+
+[internal]
+bind = "127.0.0.1:8080"      # 回环：/metrics、/health、/ready、REST API（不对外发布）
+
+[database]
+url = "sqlite:///data/tunnel.db"
+
+[logging]
+level = "info"
+
+[security]
+max_login_attempts = 5
+login_window_seconds = 300
+allow_unsafe_targets = false
+
+[tls]
+# 自签名证书 SAN：须包含 Agent 所连主机名（compose 服务名 `server`）与 `localhost`。
+subjects = ["server", "localhost"]
+# 把生成的证书 DER 写入共享卷，供 Agent 以 [server].ca 信任。
+cert_der_path = "/etc/tunnel/certs/server.der"

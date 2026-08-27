@@ -1,0 +1,31 @@
+[package]
+name = "tunnel-agent"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+clap.workspace = true
+dashmap.workspace = true
+quinn.workspace = true
+rand.workspace = true
+rustls.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tunnel-common.workspace = true
+tunnel-config.workspace = true
+tunnel-core.workspace = true
+tunnel-metrics.workspace = true
+tunnel-protocol.workspace = true
+
+[dev-dependencies]
+rcgen.workspace = true
+tokio-rustls.workspace = true
+tunnel-auth.workspace = true
+tunnel-db.workspace = true
+tunnel-server = { path = "../server" }
+
+[lints]
+workspace = true

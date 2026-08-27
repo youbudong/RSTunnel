@@ -1,0 +1,29 @@
+# RSTunnel Agent 配置（systemd 部署，安装到 /etc/tunnel/agent.toml）。
+# token 用 `tunnel-cli token` 生成，明文仅本文件持有（库里只存 SHA-256 哈希）。
+
+# 多服务器故障转移（T-43）：顺序即优先级，首个为 primary，其后为 fallback；
+# primary 停机后 Agent 自动切到下一个，primary 恢复后（下一轮重连）自动回切。
+[[servers]]
+address = "tunnel.example.com:443"              # primary
+
+# [[servers]]
+# address = "tunnel-backup.example.com:443"     # 备用（去掉注释以启用故障转移）
+
+[server]
+# ca = "/etc/tunnel/ca.der"    # 信任自签名/私有 CA（DER）；系统根在 T-30 接入
+
+[auth]
+token = "REPLACE_WITH_REAL_TOKEN"
+
+[agent]
+name = "home"
+
+[data]
+directory = "/var/lib/tunnel-agent"
+
+[health]
+bind = "127.0.0.1:9090"
+
+[security]
+# 默认拒绝 loopback/link-local（防把 Agent 变成内网扫描器）。
+# 如需放行某内网段，用 allow_targets 白名单或删减 deny_targets。

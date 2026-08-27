@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+
+# ---- build stage ----------------------------------------------------------
+# Cargo.lock 为 v4，需 Cargo >= 1.83；rust-version = 1.80。用 1.85 stable 构建。
+FROM rust:1.85-slim-bookworm AS build
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pkg-config libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# 复制整个 workspace 源码（含 path 依赖与编译期内嵌的 migrations）。
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY server ./server
+COPY agent ./agent
+COPY cli ./cli
+COPY migrations ./migrations
+
+# server 镜像同时携带 tunnel-cli，供 `init` 服务跑 `seed` 引导。
+RUN cargo build --release -p tunnel-server -p tunnel-cli
+
+# ---- runtime stage --------------------------------------------------------
+FROM debian:bookworm-slim
+
+# ca-certificates：HTTP 客户端/系统根（T-30 接入）；libsqlite3-0：SQLx 运行时依赖。
+# passwd：提供 useradd/groupadd，创建非 root 用户（§126：不要默认 root）。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 passwd \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g 65532 tunnel \
+    && useradd -u 65532 -g tunnel -s /usr/sbin/nologin -d /data tunnel \
+    && mkdir -p /data /etc/tunnel/certs \
+    && chown -R 65532:65532 /data /etc/tunnel/certs
+
+COPY --from=build /build/target/release/tunnel-server /usr/local/bin/tunnel-server
+COPY --from=build /build/target/release/tunnel-cli /usr/local/bin/tunnel-cli
+
+VOLUME ["/data"]
+USER 65532:65532
+
+ENTRYPOINT ["tunnel-server"]
+CMD ["--config", "/etc/tunnel/server.toml"]

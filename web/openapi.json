@@ -1,0 +1,1138 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Rust Tunnel API",
+    "description": "RSTunnel 管理面 REST API（§21）",
+    "license": {
+      "name": ""
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/nodes": {
+      "get": {
+        "tags": [
+          "nodes"
+        ],
+        "operationId": "list_nodes",
+        "responses": {
+          "200": {
+            "description": "List nodes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Node"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "operationId": "create_node",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Node created (bootstrap token shown once)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateNodeResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate name"
+          }
+        }
+      }
+    },
+    "/api/v1/nodes/{id}": {
+      "get": {
+        "tags": [
+          "nodes"
+        ],
+        "operationId": "get_node",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Node id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Node detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Node"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "nodes"
+        ],
+        "operationId": "delete_node",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Node id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Node deleted"
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "nodes"
+        ],
+        "operationId": "update_node",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Node id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Node updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Node"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      }
+    },
+    "/api/v1/nodes/{id}/credentials": {
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "为 node 签发运行时凭据（§5/§71）。明文 token 仅此一次返回。",
+        "operationId": "create_credential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Node id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCredentialRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Credential created (token shown once)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      }
+    },
+    "/api/v1/nodes/{id}/credentials/{credential_id}/revoke": {
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "吊销凭据（§71）：写 `revoked_at`，之后 Agent 无法认证。",
+        "operationId": "revoke_credential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Node id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "credential_id",
+            "in": "path",
+            "description": "Credential id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Credential revoked"
+          },
+          "404": {
+            "description": "Credential not found"
+          }
+        }
+      }
+    },
+    "/api/v1/routes": {
+      "get": {
+        "tags": [
+          "routes"
+        ],
+        "operationId": "list_routes",
+        "responses": {
+          "200": {
+            "description": "List routes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Route"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "routes"
+        ],
+        "operationId": "create_route",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRouteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Route created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Route"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          },
+          "409": {
+            "description": "Duplicate name/listen/hostname"
+          }
+        }
+      }
+    },
+    "/api/v1/routes/{id}": {
+      "get": {
+        "tags": [
+          "routes"
+        ],
+        "operationId": "get_route",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Route id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Route"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "routes"
+        ],
+        "operationId": "delete_route",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Route id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Route deleted"
+          },
+          "404": {
+            "description": "Route not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "routes"
+        ],
+        "operationId": "update_route",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Route id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRouteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Route updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Route"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not found"
+          }
+        }
+      }
+    },
+    "/api/v1/routes/{id}/disable": {
+      "post": {
+        "tags": [
+          "routes"
+        ],
+        "operationId": "disable_route",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Route id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Route"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not found"
+          }
+        }
+      }
+    },
+    "/api/v1/routes/{id}/enable": {
+      "post": {
+        "tags": [
+          "routes"
+        ],
+        "operationId": "enable_route",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Route id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Route"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not found"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "登录：校验密码 → 建会话 → 设 cookie + 返回短时 token；错误凭据 401。",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Login success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "登出：吊销会话并清 cookie（幂等，未登录也返回 204）。",
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Logged out"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "当前用户：cookie 或 Bearer token 任一有效即返回。",
+        "operationId": "me",
+        "responses": {
+          "200": {
+            "description": "Current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "刷新：校验 cookie 会话后签发新短时访问 token。",
+        "operationId": "refresh",
+        "responses": {
+          "200": {
+            "description": "New access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        }
+      }
+    },
+    "/enroll": {
+      "post": {
+        "tags": [
+          "enroll"
+        ],
+        "operationId": "enroll",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Enrolled; runtime credential shown once",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or used bootstrap token"
+          },
+          "422": {
+            "description": "node_name mismatch or empty token"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateCredentialRequest": {
+        "type": "object",
+        "properties": {
+          "expires_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateNodeRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateNodeResponse": {
+        "type": "object",
+        "description": "创建 Node 的响应：`node` + 一次性 bootstrap token（明文仅此一次，§4/§94）。",
+        "required": [
+          "node",
+          "bootstrap_token"
+        ],
+        "properties": {
+          "bootstrap_token": {
+            "type": "string"
+          },
+          "node": {
+            "$ref": "#/components/schemas/Node"
+          }
+        }
+      },
+      "CreateRouteRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "node_id",
+          "type",
+          "target_host",
+          "target_port"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "hostname": {
+            "type": "string",
+            "nullable": true
+          },
+          "limits": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Limits"
+              }
+            ],
+            "nullable": true
+          },
+          "listen_host": {
+            "type": "string",
+            "nullable": true
+          },
+          "listen_port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "target_host": {
+            "type": "string"
+          },
+          "target_port": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "tls_mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TlsMode"
+              }
+            ],
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/RouteType"
+          }
+        }
+      },
+      "CredentialResponse": {
+        "type": "object",
+        "description": "新凭据响应：`token` 为明文，仅创建时返回一次（§71）。",
+        "required": [
+          "id",
+          "token"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "EnrollRequest": {
+        "type": "object",
+        "required": [
+          "bootstrap_token"
+        ],
+        "properties": {
+          "agent_version": {
+            "type": "string",
+            "nullable": true
+          },
+          "architecture": {
+            "type": "string",
+            "nullable": true
+          },
+          "bootstrap_token": {
+            "type": "string"
+          },
+          "hostname": {
+            "type": "string",
+            "nullable": true
+          },
+          "node_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "platform": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EnrollResponse": {
+        "type": "object",
+        "required": [
+          "node_id",
+          "credential",
+          "config_version"
+        ],
+        "properties": {
+          "config_version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "credential": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          }
+        }
+      },
+      "Limits": {
+        "type": "object",
+        "properties": {
+          "max_bandwidth": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "minimum": 0
+          },
+          "max_connection_rate": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "minimum": 0
+          },
+          "max_connections": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "minimum": 0
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "required": [
+          "user",
+          "access_token",
+          "token_type"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "MeResponse": {
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "Node": {
+        "type": "object",
+        "description": "Node 响应对象（api.md §5）。",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "config_version",
+          "applied_config_version",
+          "config_status"
+        ],
+        "properties": {
+          "agent_version": {
+            "type": "string",
+            "nullable": true
+          },
+          "applied_config_version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "architecture": {
+            "type": "string",
+            "nullable": true
+          },
+          "config_status": {
+            "type": "string"
+          },
+          "config_version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "connected_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "hostname": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string",
+            "nullable": true
+          },
+          "remote_addr": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshResponse": {
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          }
+        }
+      },
+      "Route": {
+        "type": "object",
+        "description": "Route 响应对象（api.md §6）。",
+        "required": [
+          "id",
+          "name",
+          "node_id",
+          "type",
+          "enabled",
+          "target_host",
+          "target_port",
+          "status"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "hostname": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "limits": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Limits"
+              }
+            ],
+            "nullable": true
+          },
+          "listen_host": {
+            "type": "string",
+            "nullable": true
+          },
+          "listen_port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "target_host": {
+            "type": "string"
+          },
+          "target_port": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "tls_mode": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/RouteType"
+          }
+        }
+      },
+      "RouteType": {
+        "type": "string",
+        "enum": [
+          "tcp",
+          "udp",
+          "http",
+          "https"
+        ]
+      },
+      "TlsMode": {
+        "type": "string",
+        "enum": [
+          "terminate",
+          "passthrough",
+          "disabled"
+        ]
+      },
+      "UpdateNodeRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateRouteRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "hostname": {
+            "type": "string",
+            "nullable": true
+          },
+          "limits": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Limits"
+              }
+            ],
+            "nullable": true
+          },
+          "listen_host": {
+            "type": "string",
+            "nullable": true
+          },
+          "listen_port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "node_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "target_host": {
+            "type": "string",
+            "nullable": true
+          },
+          "target_port": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0
+          },
+          "tls_mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TlsMode"
+              }
+            ],
+            "nullable": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RouteType"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "description": "已登录用户（下发 /auth/me 与登录响应的最小画像）。",
+        "required": [
+          "id",
+          "username",
+          "role"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authentication & sessions"
+    },
+    {
+      "name": "enroll",
+      "description": "Agent enrollment"
+    },
+    {
+      "name": "nodes",
+      "description": "Node management"
+    },
+    {
+      "name": "routes",
+      "description": "Route management"
+    }
+  ]
+}

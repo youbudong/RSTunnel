@@ -1,0 +1,35 @@
+# cargo-deny 配置（T-45 CI：`cargo deny check`）。
+# 如新增依赖引入未在 allow 中的 license，CI 会失败；确认无碍后在此补充，或加 exceptions。
+
+[advisories]
+# 已知漏洞/advisory 库默认拉取 RustSec；`yanked` 先告警不阻断，避免上游偶发撤销打断 CI。
+yanked = "warn"
+
+[licenses]
+version = 2
+# 常见 Rust 依赖许可。若 CI 报未覆盖的 license，确认后加入此表或 exceptions。
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MPL-2.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "OpenSSL",
+    "CC0-1.0",
+]
+# copyleft = "deny"      # 如需禁止 GPL 等传染性许可，取消注释
+
+[bans]
+version = 2
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+version = 2
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

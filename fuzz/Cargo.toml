@@ -1,0 +1,30 @@
+[package]
+name = "tunnel-protocol-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.tunnel-protocol]
+path = "../crates/tunnel-protocol"
+
+# 独立 workspace，避免被父 workspace 的成员列表/全局 lint 干扰。
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "frame_decode"
+path = "fuzz_targets/frame_decode.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "message_decode"
+path = "fuzz_targets/message_decode.rs"
+test = false
+doc = false

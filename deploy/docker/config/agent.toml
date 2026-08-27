@@ -1,0 +1,22 @@
+# RSTunnel 演示配置（Docker compose）。生产请按 docs §45 调整，token 用 `tunnel-cli token` 生成。
+
+[[servers]]
+address = "server:443"                          # compose 网络内直连 server 的 QUIC 端口（primary）
+
+[server]
+ca = "/etc/tunnel/certs/server.der"            # 信任 server 落盘的自签名证书 DER
+
+[auth]
+token = "rstunnel-demo-token"                  # 与 `init` 服务的 seed --token 一致（演示用，生产勿复用）
+
+[agent]
+name = "demo-agent"
+
+[data]
+directory = "/var/lib/tunnel-agent"
+
+[health]
+bind = "127.0.0.1:9090"
+
+[security]
+# 默认拒绝 loopback/link-local（防 SSRF）。target 服务位于 compose 网络内（非 loopback），无需放行。

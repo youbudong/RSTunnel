@@ -1,0 +1,10 @@
+[package]
+name = "tunnel-metrics"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+prometheus.workspace = true
+
+[lints]
+workspace = true

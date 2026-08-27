@@ -1,0 +1,32 @@
+[Unit]
+Description=Rust Tunnel Agent (intranet outbound QUIC forwarding)
+Documentation=https://github.com/example/RSTunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tunnel
+Group=tunnel
+ExecStart=/usr/local/bin/tunnel-agent --config /etc/tunnel/agent.toml
+Restart=always
+RestartSec=5
+
+# ---- 沙箱（§49）----
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+PrivateDevices=true
+
+# Agent 本地状态目录（[data].directory）
+StateDirectory=tunnel-agent
+
+[Install]
+WantedBy=multi-user.target

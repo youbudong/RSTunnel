@@ -1,0 +1,39 @@
+[package]
+name = "tunnel-bench"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+futures-util = "0.3"
+tokio = { version = "1", features = ["full"] }
+
+[dependencies.tunnel-agent]
+path = "../agent"
+
+[dependencies.tunnel-auth]
+path = "../crates/tunnel-auth"
+
+[dependencies.tunnel-config]
+path = "../crates/tunnel-config"
+
+[dependencies.tunnel-core]
+path = "../crates/tunnel-core"
+
+[dependencies.tunnel-db]
+path = "../crates/tunnel-db"
+
+[dependencies.tunnel-protocol]
+path = "../crates/tunnel-protocol"
+
+[dependencies.tunnel-server]
+path = "../server"
+
+# 独立 workspace（同 fuzz/），避免被父 workspace 的成员列表/全局 lint 干扰。
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "bench"
+path = "src/main.rs"

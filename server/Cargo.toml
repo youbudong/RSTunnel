@@ -1,0 +1,43 @@
+[package]
+name = "tunnel-server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+arc-swap.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+clap.workspace = true
+httparse.workspace = true
+dashmap.workspace = true
+quinn.workspace = true
+rcgen.workspace = true
+rustls.workspace = true
+rustls-pemfile.workspace = true
+tokio-rustls.workspace = true
+x509-parser.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+utoipa.workspace = true
+utoipa-swagger-ui.workspace = true
+tunnel-auth.workspace = true
+tunnel-common.workspace = true
+tunnel-config.workspace = true
+tunnel-core.workspace = true
+tunnel-db.workspace = true
+tunnel-metrics.workspace = true
+tunnel-protocol.workspace = true
+
+[dev-dependencies]
+tower = { version = "0.4", features = ["util"] }
+tokio-tungstenite = "0.24"
+futures-util.workspace = true
+
+[lints]
+workspace = true

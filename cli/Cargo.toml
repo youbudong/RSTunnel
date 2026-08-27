@@ -1,0 +1,18 @@
+[package]
+name = "tunnel-cli"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+sqlx.workspace = true
+time.workspace = true
+tokio.workspace = true
+tunnel-auth.workspace = true
+tunnel-db.workspace = true
+
+[lints]
+workspace = true

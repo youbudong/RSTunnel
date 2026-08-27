@@ -1,0 +1,19 @@
+[package]
+name = "tunnel-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+dashmap.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+time.workspace = true
+tracing.workspace = true
+tunnel-common.workspace = true
+tunnel-protocol.workspace = true
+tunnel-auth.workspace = true
+tunnel-db.workspace = true
+
+[lints]
+workspace = true

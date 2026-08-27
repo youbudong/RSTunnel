@@ -1,0 +1,16 @@
+# Docker 构建上下文排除项（context = 仓库根，避免把 target/ 等大目录上传给 daemon）。
+
+# Rust 构建产物（巨大）
+target/
+
+# 前端（v1 未内嵌进 server 二进制；node_modules 尤其大）
+web/
+
+# 模糊测试（非 workspace 成员）
+fuzz/
+
+# VCS / 文档 / 编辑与工具目录
+.git/
+.claude/
+docs/
+*.md

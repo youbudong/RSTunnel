@@ -1,0 +1,11 @@
+/target
+/bench/target
+/fuzz/target
+/fuzz/corpus
+/fuzz/artifacts
+**/*.rs.bk
+*.db
+*.db-*
+/data
+.env
+.DS_Store

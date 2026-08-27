@@ -1,0 +1,20 @@
+{
+  "name": "rstunnel-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "RSTunnel Web 管理后台（T-24）。OpenAPI 单一事实来源生成 TS 类型（T-23/§132）。",
+  "scripts": {
+    "openapi:dump": "cargo run --manifest-path ../Cargo.toml -p tunnel-server --example dump_openapi -- openapi.json",
+    "generate:types": "openapi-typescript openapi.json -o src/types/api-types.d.ts",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}
