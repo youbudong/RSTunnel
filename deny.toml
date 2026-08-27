@@ -4,6 +4,12 @@
 [advisories]
 # 已知漏洞/advisory 库默认拉取 RustSec；`yanked` 先告警不阻断，避免上游偶发撤销打断 CI。
 yanked = "warn"
+ignore = [
+    # 由 utoipa/utoipa-gen 间接引入；当前无安全升级路径，仅标记为 unmaintained。
+    "RUSTSEC-2024-0370",
+    # rustls-pemfile 已归档（unmaintained）；当前作为 tunnel-server 的直接依赖使用。
+    "RUSTSEC-2025-0134",
+]
 
 [licenses]
 version = 2
@@ -16,9 +22,11 @@ allow = [
     "ISC",
     "MPL-2.0",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
     "Zlib",
     "OpenSSL",
     "CC0-1.0",
+    "CDLA-Permissive-2.0",
 ]
 # copyleft = "deny"      # 如需禁止 GPL 等传染性许可，取消注释
 

@@ -2,6 +2,7 @@
 name = "tunnel-agent"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
@@ -25,7 +26,7 @@ rcgen.workspace = true
 tokio-rustls.workspace = true
 tunnel-auth.workspace = true
 tunnel-db.workspace = true
-tunnel-server = { path = "../server" }
+tunnel-server = { version = "0.1.0", path = "../server" }
 
 [lints]
 workspace = true

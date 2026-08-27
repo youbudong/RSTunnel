@@ -21,13 +21,13 @@ rust-version = "1.80"
 
 # ---- 内部 crate（path 依赖）----
 [workspace.dependencies]
-tunnel-common = { path = "crates/tunnel-common" }
-tunnel-protocol = { path = "crates/tunnel-protocol" }
-tunnel-config = { path = "crates/tunnel-config" }
-tunnel-auth = { path = "crates/tunnel-auth" }
-tunnel-db = { path = "crates/tunnel-db" }
-tunnel-metrics = { path = "crates/tunnel-metrics" }
-tunnel-core = { path = "crates/tunnel-core" }
+tunnel-common = { version = "0.1.0", path = "crates/tunnel-common" }
+tunnel-protocol = { version = "0.1.0", path = "crates/tunnel-protocol" }
+tunnel-config = { version = "0.1.0", path = "crates/tunnel-config" }
+tunnel-auth = { version = "0.1.0", path = "crates/tunnel-auth" }
+tunnel-db = { version = "0.1.0", path = "crates/tunnel-db" }
+tunnel-metrics = { version = "0.1.0", path = "crates/tunnel-metrics" }
+tunnel-core = { version = "0.1.0", path = "crates/tunnel-core" }
 
 # ---- 外部依赖（版本在 workspace 统一）----
 # async runtime
