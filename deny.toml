@@ -23,12 +23,10 @@ allow = [
 # copyleft = "deny"      # 如需禁止 GPL 等传染性许可，取消注释
 
 [bans]
-version = 2
 multiple-versions = "warn"
 wildcards = "deny"
 
 [sources]
-version = 2
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]

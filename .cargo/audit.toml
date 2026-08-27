@@ -1,0 +1,11 @@
+# cargo-audit 配置（T-45 CI：`cargo audit`）。
+# 忽略无法通过升级消除、且本工程不可达的告警。
+
+[advisories]
+ignore = [
+    # rsa 0.9.x：Marvin Attack（RSA PKCS#1 v1.5 时序侧信道）。
+    # 来源：sqlx 的 MySQL 驱动（sqlx-mysql）用 rsa 做 caching_sha2_password 认证；
+    # 本工程只用 SQLite（sqlx 仅启用 `sqlite` feature），sqlx-mysql 不会被编译/链接，
+    # 该代码路径不可达。上游无 0.9.x 修复版本（需大版本升级，sqlx 未跟进）。
+    "RUSTSEC-2023-0071",
+]

@@ -65,7 +65,9 @@ rand = "0.8"
 # observability
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
-prometheus = "0.13"
+# 禁用默认 `protobuf` feature：它只为 OpenMetrics/Protobuf 编码（我们只用 TextEncoder），
+# 且会引入 protobuf 2.x（RUSTSEC-2024-0437 未修复）。default-features=false 即可去掉该依赖。
+prometheus = { version = "0.13", default-features = false }
 
 # ids / time / bytes
 uuid = { version = "1", features = ["v4", "serde"] }
