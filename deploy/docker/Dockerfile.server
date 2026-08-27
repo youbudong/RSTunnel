@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ---- build stage ----------------------------------------------------------
-# Cargo.lock 为 v4，需 Cargo >= 1.83；rust-version = 1.80。用 1.85 stable 构建。
-FROM rust:1.85-slim-bookworm AS build
+# Cargo.lock 为 v4，需 Cargo >= 1.83；rust-version = 1.80。用 1.88 stable 构建。
+FROM rust:1.88-slim-bookworm AS build
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends pkg-config libsqlite3-dev \
