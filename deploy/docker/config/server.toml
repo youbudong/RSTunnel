@@ -15,6 +15,7 @@ idle_timeout_seconds = 60
 
 [internal]
 bind = "127.0.0.1:8080"      # 回环：/metrics、/health、/ready、REST API（不对外发布）
+web_dir = "/app/web/dist"    # Web 管理后台静态目录（Docker 镜像内由 node 构建并 COPY 进来）
 
 [database]
 url = "sqlite:///data/tunnel.db"

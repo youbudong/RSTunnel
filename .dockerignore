@@ -3,8 +3,9 @@
 # Rust 构建产物（巨大）
 target/
 
-# 前端（v1 未内嵌进 server 二进制；node_modules 尤其大）
-web/
+# 前端：构建上下文仅需源码；node_modules/dist 在镜像内重新生成
+web/node_modules/
+web/dist/
 
 # 模糊测试（非 workspace 成员）
 fuzz/

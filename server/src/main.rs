@@ -193,6 +193,11 @@ async fn run(args: &Args) -> Result<()> {
         cfg.security.max_login_attempts,
         cfg.security.login_window_seconds,
     ));
+    // T-24/§153：配置了 `[internal].web_dir` 时，从 internal 端口同源托管 Web 管理后台。
+    let web_dir = cfg.internal.web_dir.clone().map(PathBuf::from);
+    if let Some(dir) = &web_dir {
+        tracing::info!(dir = %dir.display(), "serving Web admin from internal listener");
+    }
     let app = tunnel_server::api::router(
         tunnel_server::api::AppState::new_with_events_acl_and_login(
             db.clone(),
@@ -201,7 +206,8 @@ async fn run(args: &Args) -> Result<()> {
             login_limiter,
         )
         .with_allow_unsafe_targets(cfg.security.allow_unsafe_targets)
-        .with_readiness(Arc::clone(&readiness)),
+        .with_readiness(Arc::clone(&readiness))
+        .with_web_dir(web_dir),
     );
     tracing::info!(%internal_addr, "admin API listening");
     tokio::spawn(async move {

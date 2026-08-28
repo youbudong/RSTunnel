@@ -21,6 +21,17 @@ COPY migrations ./migrations
 # server 镜像同时携带 tunnel-cli，供 `init` 服务跑 `seed` 引导。
 RUN cargo build --release -p tunnel-server -p tunnel-cli
 
+# ---- web build stage ------------------------------------------------------
+# Web 管理后台（T-24）：构建 `web/dist`，由 runtime 阶段 COPY 进 server 镜像，
+# server 经 `[internal].web_dir` 同源托管（无需另跑 vite）。
+FROM node:20-bookworm-slim AS web
+
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web ./
+RUN npm run build
+
 # ---- runtime stage --------------------------------------------------------
 FROM debian:bookworm-slim
 
@@ -36,6 +47,7 @@ RUN apt-get update \
 
 COPY --from=build /build/target/release/tunnel-server /usr/local/bin/tunnel-server
 COPY --from=build /build/target/release/tunnel-cli /usr/local/bin/tunnel-cli
+COPY --from=web /web/dist /app/web/dist
 
 VOLUME ["/data"]
 USER 65532:65532

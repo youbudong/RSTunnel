@@ -75,6 +75,10 @@ pub struct QuicConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InternalConfig {
     pub bind: String,
+    /// Web 管理后台静态目录（`web/dist` 构建产物，T-24/§153）。`None` 时 internal 端口
+    /// 仅提供 REST API / Swagger / `/ws`，不同源托管前端（前端需另跑 `vite` 代理）。
+    #[serde(default)]
+    pub web_dir: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -154,6 +158,7 @@ impl Default for InternalConfig {
     fn default() -> Self {
         Self {
             bind: "127.0.0.1:8080".into(),
+            web_dir: None,
         }
     }
 }
@@ -489,6 +494,42 @@ cert_der_path = "/tmp/server.der"
         .unwrap();
         assert_eq!(cfg.tls.subjects, vec!["localhost".to_string()]);
         assert_eq!(cfg.tls.cert_der_path, Some("/tmp/server.der".to_string()));
+    }
+
+    #[test]
+    fn server_internal_web_dir_defaults_none() {
+        let cfg = ServerConfig::from_toml("").unwrap();
+        assert_eq!(cfg.internal.bind, "127.0.0.1:8080");
+        assert_eq!(cfg.internal.web_dir, None);
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn server_internal_web_dir_override() {
+        let cfg = ServerConfig::from_toml(
+            r#"
+[internal]
+bind = "127.0.0.1:8080"
+web_dir = "/app/web/dist"
+"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.internal.web_dir, Some("/app/web/dist".to_string()));
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn server_internal_web_dir_omitted_keeps_bind_required() {
+        // `[internal]` 存在但只写 bind：web_dir 缺省为 None（T-24 前后向兼容）。
+        let cfg = ServerConfig::from_toml(
+            r#"
+[internal]
+bind = "10.0.0.1:9000"
+"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.internal.bind, "10.0.0.1:9000");
+        assert_eq!(cfg.internal.web_dir, None);
     }
 
     #[test]

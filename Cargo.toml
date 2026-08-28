@@ -49,6 +49,9 @@ rustls-pemfile = "2"
 x509-parser = "0.17"
 rcgen = "0.13"
 axum = { version = "0.7", features = ["ws"] }
+# 静态文件服务（server 内嵌 Web 管理后台，T-24/§153）。0.5 匹配 axum 0.7 的 tower 0.4；
+# 0.6 依赖 tower 0.5，与 axum 0.7 的 `Service` trait 不兼容。
+tower-http = { version = "0.5", features = ["fs"] }
 hyper = { version = "1", features = ["full"] }
 httparse = "1"
 utoipa = { version = "4", features = ["axum_extras"] }

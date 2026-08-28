@@ -41,7 +41,7 @@ docker compose -f deploy/docker/docker-compose.yml up --build
 curl -H "Host: app.example.com" http://localhost:8080/
 ```
 
-管理面（容器内回环，未对外发布）：`http://127.0.0.1:8080/health`、`/ready`、`/metrics`、`/docs`（Swagger UI）。
+管理面（容器内回环，未对外发布）：Web 管理后台 `http://127.0.0.1:8080/`，以及 `http://127.0.0.1:8080/health`、`/ready`、`/metrics`、`/docs`（Swagger UI）。
 
 ### 方式二：本地开发
 
@@ -112,6 +112,7 @@ curl -H "Host: app.example.com" http://127.0.0.1:8080/
   - `[http].bind` / `[https].bind`：HTTP / HTTPS 隧道入口
   - `[quic].bind`：Agent QUIC 接入（UDP）
   - `[internal].bind`：管理面 REST API + `/metrics` `/health` `/ready`（生产只绑定回环）
+  - `[internal].web_dir`：Web 管理后台静态目录（`web/dist` 构建产物）；配置后 `/` 即同源托管 SPA，否则仅 API/Swagger（前端需另跑 `vite`）
   - `[database].url`：SQLite / PostgreSQL 连接串
   - `[tls].subjects`：自签名证书 SAN；`[tls].cert_der_path`：证书 DER 落盘路径（供 agent 信任）
   - `[security]`：登录限速、`allow_unsafe_targets`（SSRF 目标校验开关）
@@ -129,6 +130,7 @@ server 在 `[internal].bind`（示例 `127.0.0.1:8080`）提供：
 |------|------|
 | `GET /health` `GET /ready` | 存活 / 就绪探针 |
 | `GET /metrics` | Prometheus 指标 |
+| `GET /` | Web 管理后台 SPA（需 `[internal].web_dir`；同源调用下方 API/WS） |
 | `GET /docs` | Swagger UI（`/openapi.json` 为原始 OpenAPI 文档） |
 | `GET /ws` | WebSocket（订阅 node/route/config 事件） |
 | `POST /auth/login` `/logout` `/refresh`，`GET /auth/me` | 会话认证（HttpOnly cookie + 短时 Bearer） |

@@ -22,3 +22,4 @@ pub mod tcp_proxy;
 pub mod tls;
 pub mod tls_passthrough;
 pub mod udp_proxy;
+pub mod web;

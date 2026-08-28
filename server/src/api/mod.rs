@@ -15,6 +15,7 @@ pub mod rbac;
 pub mod routes;
 pub mod ws;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::http::StatusCode;
@@ -44,6 +45,9 @@ pub struct AppState {
     pub allow_unsafe_targets: bool,
     /// 就绪状态（T-39/§98）：`/ready` 据此判定 DB/配置/QUIC/HTTP 是否就绪。
     pub readiness: Arc<Readiness>,
+    /// Web 管理后台静态目录（T-24/§153）：`Some(dist)` 时从 internal 端口同源托管 SPA；
+    /// `None` 时禁用（仅 API/Swagger，前端需另跑 vite 代理）。来自 `[internal].web_dir`。
+    pub web_dir: Option<PathBuf>,
 }
 
 impl AppState {
@@ -80,6 +84,7 @@ impl AppState {
             login_limiter,
             allow_unsafe_targets: false,
             readiness: Arc::new(Readiness::new()),
+            web_dir: None,
         }
     }
 
@@ -94,6 +99,13 @@ impl AppState {
         self.readiness = readiness;
         self
     }
+
+    /// 注入 Web 管理后台静态目录（T-24）。`Some(dist)` 时 internal 端口同源托管 SPA；
+    /// `None`（默认）时禁用静态托管。
+    pub fn with_web_dir(mut self, dir: Option<PathBuf>) -> Self {
+        self.web_dir = dir;
+        self
+    }
 }
 
 /// 组装全部 API 路由：`/auth/*`（无前缀）+ `/api/v1/{nodes,routes}`（§21）。
@@ -101,7 +113,8 @@ impl AppState {
 /// 返回 `Router<()>`（已提供状态），可直接 `axum::serve` 或 `tower::ServiceExt::oneshot`
 /// 测试（axum 0.7 仅 `Router<()>` 实现 `Service`，见其 `with_state` 文档）。
 pub fn router(state: AppState) -> Router<()> {
-    Router::new()
+    let web_dir = state.web_dir.clone();
+    let app = Router::new()
         .merge(auth::router())
         .merge(enroll::router())
         .merge(health::router())
@@ -115,7 +128,14 @@ pub fn router(state: AppState) -> Router<()> {
                 .merge(acl::router())
                 .merge(audit::router()),
         )
-        .with_state(state)
+        .with_state(state);
+
+    // T-24/§153：配置了 `[internal].web_dir` 时，把 SPA 作为兜底服务（API 路由优先命中，
+    // 未命中路径回退到前端静态文件 / `index.html`）。
+    match web_dir {
+        Some(dir) => app.fallback_service(crate::web::spa_fallback(&dir)),
+        None => app,
+    }
 }
 
 /// RFC3339 UTC 时间戳（DB 时间戳约定，见 schema.md）。`time` 已为 workspace 依赖。

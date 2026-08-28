@@ -21,6 +21,9 @@ curl -H "Host: app.example.com" http://localhost:8080/
 
 管理面（仅回环，不对外发布）：
 
+- Web 管理后台：浏览器打开 `http://127.0.0.1:8080/`（server 从 `web_dir` 同源托管 SPA）
+- 探针 / 指标：
+
 ```bash
 curl http://127.0.0.1:8080/health
 curl http://127.0.0.1:8080/ready
@@ -35,6 +38,8 @@ curl http://127.0.0.1:8080/metrics
 - **TLS**：server 生成自签名证书（SAN `server`/`localhost`），DER 落盘到共享卷 `certs`；
   agent 以 `[server].ca` 信任该证书后建立 QUIC。生产应由 T-27 从 ACME/配置加载正式证书。
 - **幂等**：重复 `up` 时 `demo-node` 已存在则 seed 跳过；重置需清空 `data` 卷。
+- **Web 管理后台**：`Dockerfile.server` 用 node 阶段构建 `web/dist` 并 COPY 进镜像，
+  server 按 `config/server.toml` 的 `[internal].web_dir = "/app/web/dist"` 同源托管。
 
 ## 生产注意
 
