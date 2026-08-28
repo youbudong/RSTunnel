@@ -1,6 +1,6 @@
 # REST + WebSocket 契约
 
-> 实现见 `server/api`。Base 路径 `/api/v1`。所有响应 JSON。OpenAPI 暴露于 `/openapi.json`、`/docs`。
+> 实现见 `server/api`。Base 路径 `/api/v1`。所有响应 JSON。OpenAPI 暴露于 `/openapi.json`、`/docs`。Web 管理后台（SPA）由 `/` 同源托管（需 `[internal].web_dir`）。
 
 ## 1. 认证与安全
 

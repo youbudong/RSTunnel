@@ -1788,7 +1788,8 @@ bind = "0.0.0.0:443"        # 公网 HTTPS 统一入口：Web UI + REST API + WS
 bind = "0.0.0.0:443"        # UDP 443，Agent QUIC 隧道（与上方 TCP 443 不冲突）
 
 [internal]
-bind = "127.0.0.1:8080"     # 仅回环：/metrics、本地健康检查、调试
+bind = "127.0.0.1:8080"     # 仅回环：Web 管理后台 + /metrics、本地健康检查、调试
+web_dir = "/app/web/dist"   # Web 管理后台静态目录（web/dist 构建产物）；缺省则不托管前端
 
 [database]
 url = "sqlite://tunnel.db"  # 生产可改为 postgres://...
