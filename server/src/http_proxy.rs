@@ -7,6 +7,7 @@
 
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -33,6 +34,9 @@ const FORBIDDEN: &[u8] =
     b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
 const TOO_MANY: &[u8] =
     b"HTTP/1.1 429 Too Many Requests\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+/// 等 Agent 回 OPEN_OK/OPEN_FAIL 的超时（略大于 agent 侧 connect 超时，留出回帧余量）。
+/// 目标黑洞式不可达或 agent 无响应时，若无此兜底 server 会无限挂起，前端反代超时后替我们回 503。
+const OPEN_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// Host 路由的 HTTP 反向入口（单监听，按 Host 分发到不同 Node/Route）。
 pub struct HttpProxy {
@@ -249,28 +253,45 @@ pub(crate) async fn handle_http<S>(
         }
         return;
     }
-    match read_frame(&mut qrecv).await {
-        Ok(Some(frame)) => match Message::from_frame(&frame) {
-            Ok(Message::OpenOk(_)) => {}
-            Ok(Message::OpenFail(p)) => {
-                tracing::warn!(route = %route.name, code = %p.code, "agent failed to open target");
-                if let Some(c) = tunnel_metrics::connections_failed() {
-                    c.inc();
-                }
-                if let Some(c) = tunnel_metrics::route_errors_total() {
-                    c.inc();
-                }
-                let _ = stream.write_all(BAD_GATEWAY).await;
-                return;
+    let frame = match tokio::time::timeout(OPEN_TIMEOUT, read_frame(&mut qrecv)).await {
+        Ok(Ok(frame)) => frame,
+        Ok(Err(e)) => {
+            tracing::warn!(route = %route.name, error = %e, "read OPEN result failed");
+            if let Some(c) = tunnel_metrics::connections_failed() {
+                c.inc();
             }
-            _ => {
-                if let Some(c) = tunnel_metrics::connections_failed() {
-                    c.inc();
-                }
-                let _ = stream.write_all(BAD_GATEWAY).await;
-                return;
+            let _ = stream.write_all(BAD_GATEWAY).await;
+            return;
+        }
+        Err(_elapsed) => {
+            tracing::warn!(route = %route.name, timeout = ?OPEN_TIMEOUT, "agent did not answer OPEN_TCP in time");
+            if let Some(c) = tunnel_metrics::connections_failed() {
+                c.inc();
             }
-        },
+            let _ = stream.write_all(BAD_GATEWAY).await;
+            return;
+        }
+    };
+    let Some(frame) = frame else {
+        if let Some(c) = tunnel_metrics::connections_failed() {
+            c.inc();
+        }
+        let _ = stream.write_all(BAD_GATEWAY).await;
+        return;
+    };
+    match Message::from_frame(&frame) {
+        Ok(Message::OpenOk(_)) => {}
+        Ok(Message::OpenFail(p)) => {
+            tracing::warn!(route = %route.name, code = %p.code, "agent failed to open target");
+            if let Some(c) = tunnel_metrics::connections_failed() {
+                c.inc();
+            }
+            if let Some(c) = tunnel_metrics::route_errors_total() {
+                c.inc();
+            }
+            let _ = stream.write_all(BAD_GATEWAY).await;
+            return;
+        }
         _ => {
             if let Some(c) = tunnel_metrics::connections_failed() {
                 c.inc();

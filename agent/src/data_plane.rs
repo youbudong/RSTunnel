@@ -6,6 +6,7 @@
 
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use tokio::io::AsyncWriteExt;
@@ -14,6 +15,10 @@ use tunnel_config::SecurityConfig;
 use tunnel_core::frame_io::{read_frame, write_frame};
 use tunnel_core::target_allowed;
 use tunnel_protocol::{Message, OpenFailPayload, OpenOkPayload};
+
+/// 连接内网目标的超时（T-15 数据面）：目标黑洞式不可达时（SYN 被 DROP），
+/// `TcpStream::connect` 会挂到 OS 级超时（~130s），期间不产日志也不回帧；这里限时快速失败。
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// 接受循环：为每个 Server 打开的双向流派生一个处理任务，直到连接关闭。
 pub async fn accept_data_streams(conn: quinn::Connection, security: Arc<SecurityConfig>) {
@@ -76,21 +81,33 @@ pub async fn handle_data_stream(
         return;
     };
 
-    // 3. 连接内网目标（直连解析出的 IP，避免 DNS 重绑绕过校验）。
-    let tcp = match tokio::net::TcpStream::connect(addr).await {
-        Ok(t) => t,
-        Err(e) => {
-            tracing::warn!(%target, error = %e, "target connect failed");
-            let msg = Message::OpenFail(OpenFailPayload {
-                code: "TARGET_UNREACHABLE".to_string(),
-                message: e.to_string(),
-            });
-            let _ = send_message(&mut send, msg, request_id).await;
-            // finish 确保 OPEN_FAIL 帧送达对端再关闭发送方向（否则 drop 会 reset 掉未送达数据）。
-            let _ = send.finish();
-            return;
-        }
-    };
+    // 3. 连接内网目标（直连解析出的 IP，避免 DNS 重绑绕过校验）。加超时：黑洞式不可达时
+    // 快速失败并回帧，避免 server/前端反代整条链路无限挂起。
+    let tcp =
+        match tokio::time::timeout(CONNECT_TIMEOUT, tokio::net::TcpStream::connect(addr)).await {
+            Ok(Ok(t)) => t,
+            Ok(Err(e)) => {
+                tracing::warn!(%target, error = %e, "target connect failed");
+                let msg = Message::OpenFail(OpenFailPayload {
+                    code: "TARGET_UNREACHABLE".to_string(),
+                    message: e.to_string(),
+                });
+                let _ = send_message(&mut send, msg, request_id).await;
+                // finish 确保 OPEN_FAIL 帧送达对端再关闭发送方向（否则 drop 会 reset 掉未送达数据）。
+                let _ = send.finish();
+                return;
+            }
+            Err(_elapsed) => {
+                tracing::warn!(%target, timeout = ?CONNECT_TIMEOUT, "target connect timed out");
+                let msg = Message::OpenFail(OpenFailPayload {
+                    code: "TARGET_UNREACHABLE".to_string(),
+                    message: format!("connect timed out after {CONNECT_TIMEOUT:?}"),
+                });
+                let _ = send_message(&mut send, msg, request_id).await;
+                let _ = send.finish();
+                return;
+            }
+        };
 
     // 4. 回 OPEN_OK（携带目标侧实际地址）。
     let remote = tcp.peer_addr().ok().map(|a| a.to_string());
