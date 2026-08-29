@@ -197,15 +197,21 @@ jobs:
         with:
           name: web-dist
           path: webdist
+      # upload-artifact@v4 对多文件以「最小公共祖先」为根、单目录展平到根，
+      # 下载后的落盘路径不可预知，故用 find 定位二进制/静态资源，避免硬编码层级。
       - name: Stage arm64 context
         run: |
           mkdir -p ctx
-          cp arm64-bin/target/aarch64-unknown-linux-gnu/release/tunnel-server ctx/
-          cp arm64-bin/target/aarch64-unknown-linux-gnu/release/tunnel-agent ctx/
-          cp arm64-bin/target/aarch64-unknown-linux-gnu/release/tunnel-cli ctx/
+          for bin in tunnel-server tunnel-agent tunnel-cli; do
+            f="$(find arm64-bin -type f -name "$bin" | head -n1)"
+            [ -n "$f" ] || { echo "ERROR: $bin not found under arm64-bin"; exit 1; }
+            cp "$f" "ctx/$bin"
+          done
           if [ "${{ matrix.with_web }}" = "true" ]; then
+            idx="$(find webdist -type f -name index.html | head -n1)"
+            [ -n "$idx" ] || { echo "ERROR: web index.html not found under webdist"; exit 1; }
             mkdir -p ctx/dist
-            cp -r webdist/web/dist/. ctx/dist/
+            cp -r "$(dirname "$idx")/." ctx/dist/
           fi
 
       - uses: docker/build-push-action@v6
