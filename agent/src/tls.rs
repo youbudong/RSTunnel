@@ -99,8 +99,7 @@ impl ServerCertVerifier for TofuVerifier {
                     .map_err(|e| Error::General(format!("create pin dir: {e}")))?;
                 let mut tmp = path.clone();
                 tmp.set_extension("der.tmp");
-                std::fs::write(&tmp, der)
-                    .map_err(|e| Error::General(format!("write pin: {e}")))?;
+                std::fs::write(&tmp, der).map_err(|e| Error::General(format!("write pin: {e}")))?;
                 std::fs::rename(&tmp, &path)
                     .map_err(|e| Error::General(format!("commit pin: {e}")))?;
                 tracing::warn!(
@@ -159,10 +158,9 @@ mod tests {
     use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 
     fn cert_der(subjects: &[&str]) -> Vec<u8> {
-        let certified = generate_simple_self_signed(
-            subjects.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-        )
-        .unwrap();
+        let certified =
+            generate_simple_self_signed(subjects.iter().map(|s| s.to_string()).collect::<Vec<_>>())
+                .unwrap();
         certified.cert.der().as_ref().to_vec()
     }
 
