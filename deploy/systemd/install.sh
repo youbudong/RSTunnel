@@ -34,11 +34,11 @@ done
 # ---- 构建 ----
 if [[ $BUILD -eq 1 ]]; then
     echo "==> cargo build --release"
-    cargo build --release -p tunnel-server -p tunnel-agent -p tunnel-cli
+    cargo build --release -p tunnel-server -p tunnel-agent
     RELEASE_DIR="$SCRIPT_DIR/../../target/release"
 fi
 
-for bin in tunnel-server tunnel-agent tunnel-cli; do
+for bin in tunnel-server tunnel-agent; do
     [[ -x "$RELEASE_DIR/$bin" ]] || { echo "missing binary: $RELEASE_DIR/$bin" >&2; exit 1; }
 done
 
@@ -50,7 +50,7 @@ fi
 
 # ---- 二进制 ----
 echo "==> install binaries"
-install -m 0755 "$RELEASE_DIR/tunnel-server" "$RELEASE_DIR/tunnel-agent" "$RELEASE_DIR/tunnel-cli" "$BIN_DIR/"
+install -m 0755 "$RELEASE_DIR/tunnel-server" "$RELEASE_DIR/tunnel-agent" "$BIN_DIR/"
 
 # ---- 配置（不覆盖已有）----
 echo "==> install configs"

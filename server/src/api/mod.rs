@@ -4,6 +4,7 @@
 //! `{ "error": { "code", "message", "request_id" } }`。
 
 pub mod acl;
+pub mod admin;
 pub mod audit;
 pub mod auth;
 pub mod enroll;
@@ -152,7 +153,8 @@ pub fn router(state: AppState) -> Router<()> {
             nodes::router()
                 .merge(routes::router())
                 .merge(acl::router())
-                .merge(audit::router()),
+                .merge(audit::router())
+                .merge(admin::router()),
         )
         .with_state(state);
 

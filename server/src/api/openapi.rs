@@ -39,6 +39,11 @@ use super::AppState;
         crate::api::routes::delete_route,
         crate::api::routes::enable_route,
         crate::api::routes::disable_route,
+        // admin（backup/restore/export/import，T-42 §99/§100）
+        crate::api::admin::backup,
+        crate::api::admin::export,
+        crate::api::admin::restore,
+        crate::api::admin::import,
     ),
     components(schemas(
         crate::session::User,
@@ -69,6 +74,7 @@ use super::AppState;
         (name = "setup", description = "First-run setup"),
         (name = "nodes", description = "Node management"),
         (name = "routes", description = "Route management"),
+        (name = "admin", description = "Backup / restore / export / import"),
     ),
     info(
         title = "Rust Tunnel API",

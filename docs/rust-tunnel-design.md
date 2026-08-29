@@ -267,7 +267,6 @@ rust-tunnel/
 │   └── common/        # 错误、日志、工具
 ├── server/            # Rust 二进制：tunnel-server
 ├── agent/             # Rust 二进制：tunnel-agent
-├── cli/               # Rust 二进制：tunnel-cli（管理 CLI）
 ├── web/               # TypeScript 前端（独立于 Cargo，见 §65）
 ├── migrations/        # SQLx 迁移脚本
 ├── deploy/
@@ -3845,7 +3844,6 @@ Windows x86_64
 ```text
 tunnel-server
 tunnel-agent
-tunnel-cli
 ```
 
 Docker：

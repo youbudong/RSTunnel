@@ -751,8 +751,8 @@ async fn set_enabled(
         .set_route_enabled(&id, enabled, &ts)
         .await
         .map_err(internal)?;
-    bump_and_push(&state, &existing.node_id).await;
-    reload_config(&state).await;
+    bump_and_push(state, &existing.node_id).await;
+    reload_config(state).await;
     write_audit(
         state,
         Some(user_id),

@@ -14,7 +14,7 @@ Server / Agent 的 systemd 单元：`Restart=always` + 沙箱（§49），非 ro
 ## 一键安装（root）
 
 ```bash
-cargo build --release -p tunnel-server -p tunnel-agent -p tunnel-cli
+cargo build --release -p tunnel-server -p tunnel-agent
 sudo deploy/systemd/install.sh --release target/release
 ```
 
@@ -29,7 +29,7 @@ sudo deploy/systemd/install.sh --build
 1. 建用户：`useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin tunnel`
 2. 装二进制到 `/usr/local/bin/`
 3. 配置到 `/etc/tunnel/`（`chown root:tunnel`，`chmod 640`），并把
-   `tunnel-agent.toml` 里的 `token` 换成 `tunnel-cli token` 生成的明文、`endpoints`
+   `tunnel-agent.toml` 里的 `token` 换成 Web 后台 / API 签发的明文、`endpoints`
    换成真实服务器地址。
 4. 单元到 `/etc/systemd/system/`，`systemctl daemon-reload`
 5. `systemctl enable --now tunnel-server tunnel-agent`

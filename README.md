@@ -10,6 +10,16 @@
 
 ## 文档索引
 
+### 用户文档
+
+| 文档 | 内容 |
+|------|------|
+| [quickstart.md](docs/quickstart.md) | 快速上手（5 分钟跑通第一个隧道） |
+| [config-reference.md](docs/config-reference.md) | 配置参数详解（server/agent TOML 全字段 + 路由字段） |
+| [comparison.md](docs/comparison.md) | 定位、优缺点与竞品对比（vs Cloudflare Tunnel / FRP / ngrok 等） |
+
+### 开发者文档
+
 | 文档 | 内容 |
 |------|------|
 | [rust-tunnel-design.md](docs/rust-tunnel-design.md) | 产品级设计（架构/组件/原则/DoD） |
@@ -28,6 +38,8 @@ Rust + Tokio + Quinn(QUIC) + Rustls(TLS 1.3) + Axum(HTTP API) + SQLx(SQLite/Post
 
 ## 快速开始
 
+> 更完整的从零上手（含配置模板、生产部署要点、常见坑排查）见 [`docs/quickstart.md`](docs/quickstart.md)。
+
 ### 方式一：Docker 演示（一键走通）
 
 ```bash
@@ -35,7 +47,7 @@ Rust + Tokio + Quinn(QUIC) + Rustls(TLS 1.3) + Axum(HTTP API) + SQLx(SQLite/Post
 docker compose -f deploy/docker/docker-compose.yml up --build
 ```
 
-拓扑为 `server + agent + target + init`；`init` 一次性服务用 `tunnel-cli seed` 种入演示 Node + 凭据 + 一条 HTTP Route。走通验证（HTTP 隧道按 Host 路由到 target）：
+拓扑为 `server + agent + target`；server 启动时经 `[demo]` 配置段自动种入演示 Node + 凭据 + 一条 HTTP Route。走通验证（HTTP 隧道按 Host 路由到 target）：
 
 ```bash
 curl -H "Host: app.example.com" http://localhost:8080/
@@ -46,31 +58,23 @@ curl -H "Host: app.example.com" http://localhost:8080/
 ### 方式二：本地开发
 
 ```bash
-# 构建三个二进制
-cargo build -p tunnel-server -p tunnel-agent -p tunnel-cli
-
-# 生成一个 agent 运行时 token（明文仅显示一次）
-./target/debug/tunnel-cli token
+# 构建两个二进制
+cargo build -p tunnel-server -p tunnel-agent
 ```
 
 1. 准备配置文件：以 [`deploy/docker/config/server.toml`](deploy/docker/config/server.toml) 与 [`agent.toml`](deploy/docker/config/agent.toml) 为模板，改成本地地址（如 server `[internal].bind`/`[database].url`，agent `[[servers]].address` → `127.0.0.1:443`；`[server].ca` 可省略——缺省时 Agent 首次连接自动信任并固定服务端证书（TOFU），无需手动拷贝证书）。
-2. 种入一个演示节点 + 路由（`<TOKEN>` 换成上一步生成的 token）：
 
-```bash
-./target/debug/tunnel-cli seed \
-  --db sqlite://data/tunnel.db \
-  --token <TOKEN> \
-  --target-host 127.0.0.1 --target-port 5678 \
-  --hostname app.example.com
-```
-
-3. 启动 server（自动建库 + 迁移 + 生成自签名证书）：
+2. 启动 server（自动建库 + 迁移 + 生成自签名证书）：
 
 ```bash
 ./target/debug/tunnel-server --config server.toml
 ```
 
-4. 启动 agent（`[auth].token` 与第 2 步一致）：
+3. 建 Node 并签发凭据：浏览器打开 `http://127.0.0.1:8080/`（首次会引导创建管理员账户），在 Web 后台建一个 Node，再签发运行时 token（明文仅显示一次，库中只存 SHA-256），最后建一条 Route 指向内网目标。把签发的 token 填入 `agent.toml` 的 `[auth].token`。
+
+> 只想快速走通？在 `server.toml` 加一段 `[demo]`（`enabled = true`、`token = "<明文 token>"`），server 启动时自动种入 `demo-node` + 凭据 + 一条 `Host: app.example.com` 的 HTTP Route；`agent.toml` 的 `[auth].token` 填同一 token，即可跳过本步。
+
+4. 启动 agent（`[auth].token` 与第 3 步一致）：
 
 ```bash
 ./target/debug/tunnel-agent --config agent.toml
@@ -84,29 +88,18 @@ curl -H "Host: app.example.com" http://127.0.0.1:8080/
 
 ## 使用说明
 
-### 三个二进制
+### 两个二进制
 
 | 二进制 | 作用 | 入口 |
 |--------|------|------|
-| `tunnel-server` | 公网侧：QUIC 接入 + HTTP/TCP/UDP 转发 + 认证 + REST API | `--config server.toml`（默认 `config/server.toml`） |
+| `tunnel-server` | 公网侧：QUIC 接入 + HTTP/TCP/UDP 转发 + 认证 + REST API + 备份/导入导出 | `--config server.toml`（默认 `config/server.toml`） |
 | `tunnel-agent` | 内网侧：主动出站 QUIC，把流量转发到内网目标 | `--config agent.toml`（默认 `config/agent.toml`） |
-| `tunnel-cli` | 管理引导：token/密码哈希生成、演示种入、备份/恢复、配置导入导出 | 子命令见下 |
 
-> 三个二进制均只走一个入口，启动时会自动跑数据库迁移，无需单独的 migrate 步骤。
-
-### tunnel-cli 子命令
-
-| 子命令 | 说明 |
-|--------|------|
-| `token` | 生成 agent 运行时 token（明文仅显示一次，库中只存 SHA-256） |
-| `hash-password <pwd>` | 生成 Argon2id 密码哈希（用于管理员用户） |
-| `seed --db <url> --token <T> [--target-host H] [--target-port P] [--hostname D]` | 种入演示 Node `demo-node` + 凭据 + 一条 HTTP Route（幂等） |
-| `backup --db <url> [--output F]` | 全量备份（含凭据哈希与证书）到 YAML |
-| `restore --db <url> --input F [--yes]` | 从全量备份恢复（缺省预览，加 `--yes` 落库） |
-| `export --db <url> [--output F]` | 导出控制面配置（不含凭据/证书） |
-| `import --db <url> --input F [--yes]` | 导入控制面配置（缺省预览；拒绝含凭据的备份文件） |
+> 两个二进制均只走一个入口，启动时会自动跑数据库迁移，无需单独的 migrate 步骤。原 `tunnel-cli` 的运维能力（token/密码哈希生成、演示种入、备份/恢复、配置导入导出）已并入 server 的 Web 后台与 REST API。
 
 ### 配置文件
+
+> 每个字段的类型、默认值与含义（含 `[[servers]]`、SSRF 策略判定规则、Route 字段与 `limits` 限速）见 [`docs/config-reference.md`](docs/config-reference.md)。
 
 - **Server**（示例 [`deploy/docker/config/server.toml`](deploy/docker/config/server.toml)）
   - `[http].bind` / `[https].bind`：HTTP / HTTPS 隧道入口

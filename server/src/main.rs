@@ -43,6 +43,57 @@ async fn main() -> ExitCode {
     }
 }
 
+/// 演示引导：种入 `demo-node` + 运行时凭据 + 一条 HTTP Route（幂等）。
+///
+/// 逐字镜像原 tunnel-cli 的 `seed` 子命令，固定 UUID 便于演示幂等（`demo-node` 已存在即跳过）。
+async fn seed_demo(db: &tunnel_db::Db, demo: &tunnel_config::DemoConfig) -> Result<()> {
+    const NODE_ID: &str = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01";
+    const CRED_ID: &str = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa02";
+    const ROUTE_ID: &str = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa03";
+
+    if db.node_name_exists("demo-node", None).await? {
+        tracing::info!("demo-node already seeded; skipping");
+        return Ok(());
+    }
+
+    let ts = time::OffsetDateTime::now_utc().to_string();
+    db.create_node(NODE_ID, "demo-node", None, &ts).await?;
+    db.create_credential(
+        CRED_ID,
+        NODE_ID,
+        "token",
+        &tunnel_auth::hash_token(&demo.token),
+        None,
+        &ts,
+    )
+    .await?;
+    db.create_route(
+        ROUTE_ID,
+        "demo-web",
+        NODE_ID,
+        "http",
+        true,
+        None,
+        None,
+        Some(&demo.hostname),
+        &demo.target_host,
+        demo.target_port as i64,
+        "none",
+        None,
+        &ts,
+    )
+    .await?;
+
+    tracing::info!(
+        node = "demo-node",
+        route = "demo-web",
+        hostname = %demo.hostname,
+        target = %format!("{}:{}", demo.target_host, demo.target_port),
+        "demo data seeded"
+    );
+    Ok(())
+}
+
 async fn run(args: &Args) -> Result<()> {
     let text = std::fs::read_to_string(&args.config)
         .with_context(|| format!("read config {}", args.config.display()))?;
@@ -60,6 +111,12 @@ async fn run(args: &Args) -> Result<()> {
         .context("connect database")?;
     db.migrate().await.context("run migrations")?;
     readiness.mark_db();
+
+    // 演示引导（替代原 tunnel-cli seed）：`[demo].enabled` 时种入 demo-node + 凭据 + HTTP 路由，
+    // 须早于下方 `config.reload`，否则种子路由不会进入启动时的 HostTable/RouteTable。
+    if cfg.demo.enabled {
+        seed_demo(&db, &cfg.demo).await.context("seed demo data")?;
+    }
 
     let quic_addr: SocketAddr = cfg.quic.bind.parse().context("parse quic bind address")?;
     // TODO(T-27): 从 ACME/配置加载证书；开发/演示用自签名（SAN 取自 [tls].subjects）。

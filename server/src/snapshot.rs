@@ -282,13 +282,13 @@ impl Snapshot {
 // 恢复报告
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct TableCounts {
     pub inserted: usize,
     pub skipped: usize,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 pub struct RestoreReport {
     pub nodes: TableCounts,
     pub routes: TableCounts,

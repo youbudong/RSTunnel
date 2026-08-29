@@ -1,5 +1,5 @@
 # RSTunnel Agent 配置（systemd 部署，安装到 /etc/tunnel/agent.toml）。
-# token 用 `tunnel-cli token` 生成，明文仅本文件持有（库里只存 SHA-256 哈希）。
+# token 在 Web 后台 / API 签发，明文仅本文件持有（库里只存 SHA-256 哈希）。
 
 # 多服务器故障转移（T-43）：顺序即优先级，首个为 primary，其后为 fallback；
 # primary 停机后 Agent 自动切到下一个，primary 恢复后（下一轮重连）自动回切。

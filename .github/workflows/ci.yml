@@ -65,7 +65,7 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cross
-      - run: cross build --release --target aarch64-unknown-linux-gnu -p tunnel-server -p tunnel-agent -p tunnel-cli
+      - run: cross build --release --target aarch64-unknown-linux-gnu -p tunnel-server -p tunnel-agent
 
   audit:
     name: audit (cargo-audit)

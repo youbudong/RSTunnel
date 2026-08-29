@@ -16,7 +16,6 @@ RUN apt-get update \
     && chown -R 65532:65532 /data /etc/tunnel/certs
 
 COPY tunnel-server /usr/local/bin/tunnel-server
-COPY tunnel-cli /usr/local/bin/tunnel-cli
 COPY dist /app/web/dist
 
 VOLUME ["/data"]

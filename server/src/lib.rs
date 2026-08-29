@@ -18,6 +18,7 @@ pub mod quic;
 pub mod readiness;
 pub mod route;
 pub mod session;
+pub mod snapshot;
 pub mod tcp_proxy;
 pub mod tls;
 pub mod tls_passthrough;

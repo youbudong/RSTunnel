@@ -1,5 +1,5 @@
-# Release（T-45/§125）：tag（v*）触发，产出三平台三二进制产物 + Docker 多架构镜像。
-# 产物：tunnel-server / tunnel-agent / tunnel-cli；镜像：ghcr.io/<owner>/tunnel-{server,agent}。
+# Release（T-45/§125）：tag（v*）触发，产出三平台两二进制产物 + Docker 多架构镜像。
+# 产物：tunnel-server / tunnel-agent；镜像：ghcr.io/<owner>/tunnel-{server,agent}。
 # 构建提速：amd64 镜像用 cargo 缓存挂载 + gha 缓存（依赖只编译一次）；arm64 镜像复用
 # `cross` 交叉编译的二进制组装（rustc 以 amd64 运行，无 QEMU 仿真下的 Rust 编译），
 # 最后用 `imagetools create` 合成多架构 manifest。
@@ -41,13 +41,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build (native)
-        run: cargo build --release --target ${{ matrix.target }} -p tunnel-server -p tunnel-agent -p tunnel-cli
+        run: cargo build --release --target ${{ matrix.target }} -p tunnel-server -p tunnel-agent
 
       - name: Package (unix)
         if: runner.os != 'Windows'
         run: |
           mkdir -p dist
-          for bin in tunnel-server tunnel-agent tunnel-cli; do
+          for bin in tunnel-server tunnel-agent; do
             cp "target/${{ matrix.target }}/release/$bin" "dist/$bin"
           done
           tar -czf "rstunnel-${{ matrix.target }}.tar.gz" -C dist .
@@ -57,7 +57,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist
-          foreach ($bin in @("tunnel-server", "tunnel-agent", "tunnel-cli")) {
+          foreach ($bin in @("tunnel-server", "tunnel-agent")) {
             Copy-Item "target/${{ matrix.target }}/release/$bin.exe" "dist/$bin.exe"
           }
           Compress-Archive -Path "dist/*" -DestinationPath "rstunnel-${{ matrix.target }}.zip"
@@ -84,11 +84,11 @@ jobs:
         with:
           tool: cross
       - name: Build via cross
-        run: cross build --release --target aarch64-unknown-linux-gnu -p tunnel-server -p tunnel-agent -p tunnel-cli
+        run: cross build --release --target aarch64-unknown-linux-gnu -p tunnel-server -p tunnel-agent
       - name: Package tarball
         run: |
           mkdir -p dist
-          for bin in tunnel-server tunnel-agent tunnel-cli; do
+          for bin in tunnel-server tunnel-agent; do
             cp "target/aarch64-unknown-linux-gnu/release/$bin" "dist/$bin"
           done
           tar -czf "rstunnel-aarch64-unknown-linux-gnu.tar.gz" -C dist .
@@ -103,7 +103,6 @@ jobs:
           path: |
             target/aarch64-unknown-linux-gnu/release/tunnel-server
             target/aarch64-unknown-linux-gnu/release/tunnel-agent
-            target/aarch64-unknown-linux-gnu/release/tunnel-cli
           if-no-files-found: error
 
   # Web 管理后台静态资源：原生构建一次，供 arm64 server 镜像组装（避免 QEMU 下跑 node）。
@@ -202,7 +201,7 @@ jobs:
       - name: Stage arm64 context
         run: |
           mkdir -p ctx
-          for bin in tunnel-server tunnel-agent tunnel-cli; do
+          for bin in tunnel-server tunnel-agent; do
             f="$(find arm64-bin -type f -name "$bin" | head -n1)"
             [ -n "$f" ] || { echo "ERROR: $bin not found under arm64-bin"; exit 1; }
             cp "$f" "ctx/$bin"

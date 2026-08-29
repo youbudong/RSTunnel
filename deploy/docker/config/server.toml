@@ -35,3 +35,12 @@ subjects = ["server", "localhost"]
 cert_der_path = "/etc/tunnel/certs/server.der"
 # 与 cert_der_path 一起配置，服务端复用已落盘证书（跨容器重启稳定身份）。
 key_der_path = "/etc/tunnel/certs/server.key.der"
+
+[demo]
+# 演示引导：启动时若 demo-node 不存在，种入 Node + 运行时凭据 + HTTP Route（幂等）。
+# 生产部署删除本节或将 enabled 设为 false（默认）。
+enabled = true
+token = "rstunnel-demo-token"     # 与 config/agent.toml 的 [auth].token 一致
+hostname = "app.example.com"
+target_host = "target"            # compose 网络内的目标服务名
+target_port = 5678

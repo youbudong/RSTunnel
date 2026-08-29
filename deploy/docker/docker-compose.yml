@@ -10,42 +10,17 @@
 #     curl http://127.0.0.1:8080/ready
 #     curl http://127.0.0.1:8080/metrics
 #
-# 说明：`init` 一次性服务用同一 server 镜像跑 `tunnel-cli seed`，向共享卷中的 SQLite
-# 种入 Node + 凭据（SHA-256 哈希）+ HTTP Route；幂等（demo-node 已存在即跳过）。
-# server 落盘自签名证书 DER 到共享卷 `certs`（跨重启稳定身份）；agent 不配 [server].ca，
-# 首次连接自动 TOFU 信任并固定服务端证书，无需手动拷贝证书。
+# 说明：server 启动时经 `[demo]` 配置段向共享卷中的 SQLite 种入 demo-node + 凭据
+# （SHA-256 哈希）+ HTTP Route；幂等（demo-node 已存在即跳过）。server 落盘自签名证书
+# DER 到共享卷 `certs`（跨重启稳定身份）；agent 不配 [server].ca，首次连接自动 TOFU
+# 信任并固定服务端证书，无需手动拷贝证书。
 
 services:
-  init:
-    image: rstunnel-server:local
-    build:
-      context: ../..
-      dockerfile: deploy/docker/Dockerfile.server
-    entrypoint: ["tunnel-cli"]
-    command:
-      - "seed"
-      - "--db"
-      - "sqlite:///data/tunnel.db"
-      - "--token"
-      - "rstunnel-demo-token"          # 演示用；与 config/agent.toml 保持一致
-      - "--target-host"
-      - "target"
-      - "--target-port"
-      - "5678"
-      - "--hostname"
-      - "app.example.com"
-    volumes:
-      - data:/data
-    restart: "no"
-
   server:
     image: rstunnel-server:local
     build:
       context: ../..
       dockerfile: deploy/docker/Dockerfile.server
-    depends_on:
-      init:
-        condition: service_completed_successfully
     volumes:
       - data:/data
       - certs:/etc/tunnel/certs

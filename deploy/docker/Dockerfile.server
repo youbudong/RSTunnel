@@ -15,16 +15,13 @@ COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY server ./server
 COPY agent ./agent
-COPY cli ./cli
 COPY migrations ./migrations
 
-# server 镜像同时携带 tunnel-cli，供 `init` 服务跑 `seed` 引导。
 # 缓存挂载：cargo registry + target 跨发布复用，依赖只编译一次（T-45/§125 构建提速）。
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/build/target \
-    cargo build --release -p tunnel-server -p tunnel-cli \
-    && cp /build/target/release/tunnel-server /build/tunnel-server \
-    && cp /build/target/release/tunnel-cli /build/tunnel-cli
+    cargo build --release -p tunnel-server \
+    && cp /build/target/release/tunnel-server /build/tunnel-server
 
 # ---- web build stage ------------------------------------------------------
 # Web 管理后台（T-24）：构建 `web/dist`，由 runtime 阶段 COPY 进 server 镜像，
@@ -51,7 +48,6 @@ RUN apt-get update \
     && chown -R 65532:65532 /data /etc/tunnel/certs
 
 COPY --from=build /build/tunnel-server /usr/local/bin/tunnel-server
-COPY --from=build /build/tunnel-cli /usr/local/bin/tunnel-cli
 COPY --from=web /web/dist /app/web/dist
 
 VOLUME ["/data"]

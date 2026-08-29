@@ -23,7 +23,6 @@ rust-tunnel/
 │   └── tunnel-metrics/       # Prometheus 指标定义
 ├── server/                   # 二进制 tunnel-server
 ├── agent/                    # 二进制 tunnel-agent
-├── cli/                      # 二进制 tunnel-cli（管理 CLI，走 REST API）
 ├── web/                      # TypeScript 前端（独立工程，不参与 cargo）
 ├── migrations/               # SQLx 迁移脚本（由 tunnel-db embed）
 ├── deploy/
@@ -44,7 +43,7 @@ tunnel-db
    ↑
 tunnel-core
    ↑
-server / agent / cli
+server / agent
 ```
 
 `server`、`agent` 不互相依赖；`web` 不依赖任何 Rust crate。
@@ -57,7 +56,7 @@ server / agent / cli
 cargo fmt --all -- --check          # 格式检查
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace
-cargo build --release -p tunnel-server -p tunnel-agent -p tunnel-cli
+cargo build --release -p tunnel-server -p tunnel-agent
 
 # 数据库迁移（SQLite 本地开发）
 export DATABASE_URL="sqlite://tunnel.db"

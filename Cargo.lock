@@ -2927,21 +2927,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tunnel-cli"
-version = "0.2.6"
-dependencies = [
- "anyhow",
- "clap",
- "serde",
- "serde_yaml",
- "sqlx",
- "time",
- "tokio",
- "tunnel-auth",
- "tunnel-db",
-]
-
-[[package]]
 name = "tunnel-common"
 version = "0.2.6"
 dependencies = [
@@ -3020,6 +3005,8 @@ dependencies = [
  "rustls-pemfile",
  "serde",
  "serde_json",
+ "serde_yaml",
+ "sqlx",
  "thiserror 1.0.69",
  "time",
  "tokio",

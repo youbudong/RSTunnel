@@ -26,6 +26,7 @@ pub struct ServerConfig {
     pub logging: LoggingConfig,
     pub security: ServerSecurityConfig,
     pub tls: TlsConfig,
+    pub demo: DemoConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +94,49 @@ pub struct DatabaseConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoggingConfig {
     pub level: String,
+}
+
+/// 演示/本地一键引导（替代原 tunnel-cli `seed`）：`enabled` 时 server 启动会在库为空时
+/// 种入 `demo-node` + 运行时凭据 + 一条 HTTP Route，供 Docker compose / 本地演示零配置走通。
+/// 生产部署请保持 `enabled = false`（默认）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DemoConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// 演示 Agent 的运行时 token（`enabled` 时必填，与 agent.toml 的 `[auth].token` 一致）。
+    #[serde(default)]
+    pub token: String,
+    #[serde(default = "default_demo_hostname")]
+    pub hostname: String,
+    #[serde(default = "default_demo_target_host")]
+    pub target_host: String,
+    #[serde(default = "default_demo_target_port")]
+    pub target_port: u16,
+}
+
+fn default_demo_hostname() -> String {
+    "app.example.com".into()
+}
+
+fn default_demo_target_host() -> String {
+    "target".into()
+}
+
+fn default_demo_target_port() -> u16 {
+    5678
+}
+
+impl Default for DemoConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            token: String::new(),
+            hostname: default_demo_hostname(),
+            target_host: default_demo_target_host(),
+            target_port: default_demo_target_port(),
+        }
+    }
 }
 
 /// Server 安全配置（T-35/T-37，§160）：登录防暴力破解限速 + SSRF 目标校验开关。
@@ -206,6 +250,11 @@ impl ServerConfig {
         if self.security.max_login_attempts == 0 {
             return Err(ConfigError::Invalid(
                 "max_login_attempts must be at least 1".into(),
+            ));
+        }
+        if self.demo.enabled && self.demo.token.is_empty() {
+            return Err(ConfigError::Invalid(
+                "demo.enabled requires a non-empty demo.token".into(),
             ));
         }
         Ok(())

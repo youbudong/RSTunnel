@@ -10,7 +10,6 @@ members = [
     "crates/tunnel-core",
     "server",
     "agent",
-    "cli",
 ]
 
 [workspace.package]
