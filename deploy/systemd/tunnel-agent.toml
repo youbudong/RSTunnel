@@ -10,7 +10,9 @@ address = "tunnel.example.com:443"              # primary
 # address = "tunnel-backup.example.com:443"     # 备用（去掉注释以启用故障转移）
 
 [server]
-# ca = "/etc/tunnel/ca.der"    # 信任自签名/私有 CA（DER）；系统根在 T-30 接入
+# ca = "/etc/tunnel/ca.der"    # 显式信任某证书/CA（DER）。缺省时 Agent 自动 TOFU：
+#                             # 首次连接信任服务端证书并固定（存 <data.directory>/server-pins），
+#                             # 之后每次严格校验。
 
 [auth]
 token = "REPLACE_WITH_REAL_TOKEN"

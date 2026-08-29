@@ -53,7 +53,7 @@ cargo build -p tunnel-server -p tunnel-agent -p tunnel-cli
 ./target/debug/tunnel-cli token
 ```
 
-1. 准备配置文件：以 [`deploy/docker/config/server.toml`](deploy/docker/config/server.toml) 与 [`agent.toml`](deploy/docker/config/agent.toml) 为模板，改成本地地址（如 server `[internal].bind`/`[database].url`，agent `[[servers]].address` → `127.0.0.1:443`、`[server].ca` → server 落盘的证书 DER）。
+1. 准备配置文件：以 [`deploy/docker/config/server.toml`](deploy/docker/config/server.toml) 与 [`agent.toml`](deploy/docker/config/agent.toml) 为模板，改成本地地址（如 server `[internal].bind`/`[database].url`，agent `[[servers]].address` → `127.0.0.1:443`；`[server].ca` 可省略——缺省时 Agent 首次连接自动信任并固定服务端证书（TOFU），无需手动拷贝证书）。
 2. 种入一个演示节点 + 路由（`<TOKEN>` 换成上一步生成的 token）：
 
 ```bash
@@ -114,11 +114,11 @@ curl -H "Host: app.example.com" http://127.0.0.1:8080/
   - `[internal].bind`：管理面 REST API + `/metrics` `/health` `/ready`（生产只绑定回环）
   - `[internal].web_dir`：Web 管理后台静态目录（`web/dist` 构建产物）；配置后 `/` 即同源托管 SPA，否则仅 API/Swagger（前端需另跑 `vite`）
   - `[database].url`：SQLite / PostgreSQL 连接串
-  - `[tls].subjects`：自签名证书 SAN；`[tls].cert_der_path`：证书 DER 落盘路径（供 agent 信任）
+  - `[tls].subjects`：自签名证书 SAN；`[tls].cert_der_path`/`key_der_path`：证书与私钥 DER 落盘路径（同时配置后跨重启复用同一证书，否则每次启动新生成）
   - `[security]`：登录限速、`allow_unsafe_targets`（SSRF 目标校验开关）
 - **Agent**（示例 [`deploy/docker/config/agent.toml`](deploy/docker/config/agent.toml)）
   - `[[servers]].address`：server QUIC 地址（多条 = 故障转移，primary 在前）
-  - `[server].ca`：信任 server 的证书 DER（自签名时必填）
+  - `[server].ca`：显式信任 server 的证书/CA DER（可选）。缺省时 Agent 走 TOFU：首次连接信任并固定服务端证书到 `<data.directory>/server-pins/`，之后每次严格校验（证书变更即拒绝，防中间人）
   - `[auth].token`：agent 运行时 token
   - `[data].directory`、`[health].bind`（默认 `127.0.0.1:9090/health`）、`[security].allow/deny_targets`
 

@@ -1,7 +1,7 @@
 //! tunnel-server 二进制入口：加载配置 → 构建 TLS → 启动 QUIC 接受循环。
 
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
@@ -63,13 +63,12 @@ async fn run(args: &Args) -> Result<()> {
 
     let quic_addr: SocketAddr = cfg.quic.bind.parse().context("parse quic bind address")?;
     // TODO(T-27): 从 ACME/配置加载证书；开发/演示用自签名（SAN 取自 [tls].subjects）。
-    let cert = tls::generate_self_signed(&cfg.tls.subjects)?;
-    // 把证书 DER 落盘，供 Agent 以 [server].ca 信任（Docker 演示经共享卷传递）。
-    if let Some(path) = &cfg.tls.cert_der_path {
-        std::fs::write(path, cert.cert_der.as_ref())
-            .with_context(|| format!("write TLS certificate to {path}"))?;
-        tracing::info!(path = %path, "wrote self-signed server certificate (DER)");
-    }
+    // 配置 cert_der_path + key_der_path 时复用已落盘证书（跨重启稳定身份），否则每次启动新生成。
+    let cert = tls::load_or_generate(
+        cfg.tls.cert_der_path.as_deref().map(Path::new),
+        cfg.tls.key_der_path.as_deref().map(Path::new),
+        &cfg.tls.subjects,
+    )?;
     let server_config = tls::server_config(&cert)?;
     let sessions = Arc::new(SessionManager::new());
     // T-25：数据面（QUIC）与管理面（REST）共享事件总线，`/ws` 订阅其上的 node/route/config 事件。

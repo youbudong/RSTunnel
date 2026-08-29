@@ -4,7 +4,9 @@
 address = "server:443"                          # compose 网络内直连 server 的 QUIC 端口（primary）
 
 [server]
-ca = "/etc/tunnel/certs/server.der"            # 信任 server 落盘的自签名证书 DER
+# ca = "/etc/tunnel/certs/server.der"   # 可选：显式信任某证书/CA DER。
+#                                       # 缺省时 Agent 自动 TOFU：首次连接信任服务端证书并固定
+#                                       # （存 /var/lib/tunnel-agent/server-pins），之后严格校验。
 
 [auth]
 token = "rstunnel-demo-token"                  # 与 `init` 服务的 seed --token 一致（演示用，生产勿复用）

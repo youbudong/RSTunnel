@@ -49,6 +49,9 @@ pub struct TlsConfig {
     #[serde(default = "default_subjects")]
     pub subjects: Vec<String>,
     pub cert_der_path: Option<String>,
+    /// 服务端私钥 DER 落盘路径。与 `cert_der_path` 同时配置时，服务端复用已落盘证书
+    /// （跨重启稳定身份），否则每次启动新生成（开发/测试）。
+    pub key_der_path: Option<String>,
 }
 
 fn default_subjects() -> Vec<String> {
@@ -60,6 +63,7 @@ impl Default for TlsConfig {
         Self {
             subjects: default_subjects(),
             cert_der_path: None,
+            key_der_path: None,
         }
     }
 }

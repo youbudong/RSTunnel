@@ -33,3 +33,5 @@ allow_unsafe_targets = false
 subjects = ["server", "localhost"]
 # 把生成的证书 DER 写入共享卷，供 Agent 以 [server].ca 信任。
 cert_der_path = "/etc/tunnel/certs/server.der"
+# 与 cert_der_path 一起配置，服务端复用已落盘证书（跨容器重启稳定身份）。
+key_der_path = "/etc/tunnel/certs/server.key.der"

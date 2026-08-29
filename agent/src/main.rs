@@ -1,7 +1,7 @@
 //! tunnel-agent 入口：加载 bootstrap → 解析 endpoints → QUIC 连接 → HELLO/AUTH → 心跳循环。
 
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
@@ -47,7 +47,9 @@ async fn run(args: &Args) -> Result<()> {
         tracing::info!(%addr, %server_name, endpoint_index = i, name = %cfg.agent.name, "server endpoint");
     }
 
-    let client_config = build_client_config(cfg.server.ca.as_deref())?;
+    // TOFU pin 目录：无 [server].ca 时用于固定首次见到的服务端证书。
+    let pin_dir = Path::new(&cfg.data.directory).join("server-pins");
+    let client_config = build_client_config(cfg.server.ca.as_deref(), &pin_dir)?;
     // `server_name` 仅作默认 SNI；故障转移循环按每个端点各自的 SNI 连。
     let agent = Agent::new(client_config, endpoints[0].1.clone())?;
 
@@ -135,17 +137,20 @@ async fn resolve_endpoints(endpoints: &[String]) -> Result<Vec<(SocketAddr, Stri
     Ok(resolved)
 }
 
-fn build_client_config(ca: Option<&str>) -> Result<quinn::ClientConfig> {
+fn build_client_config(ca: Option<&str>, pin_dir: &Path) -> Result<quinn::ClientConfig> {
     match ca {
         Some(path) => {
             let der = std::fs::read(path).with_context(|| format!("read CA {path}"))?;
             tls::client_config_from_der(der)
         }
         None => {
+            // 未显式配置 [server].ca 时回退 TOFU：首次连接信任服务端证书并固定到 pin_dir，
+            // 之后每次严格比对（证书变更即拒绝）。系统根（公网 CA）待 T-30 接入。
             tracing::warn!(
-                "no [server].ca configured; server cert is not trusted (system roots land in T-30)"
+                dir = %pin_dir.display(),
+                "no [server].ca configured; trusting server certificate on first use (TOFU)"
             );
-            tls::client_config_without_roots()
+            tls::client_config_tofu(pin_dir.to_path_buf())
         }
     }
 }

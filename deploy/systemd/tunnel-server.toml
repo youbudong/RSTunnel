@@ -29,6 +29,8 @@ allow_unsafe_targets = false
 
 # 自签名证书参数（开发/单机演示）。生产由 T-27 从 ACME/配置加载正式证书。
 # `subjects` 须包含 Agent 所连主机名；`cert_der_path` 落盘 DER 供 Agent 信任。
+# 同时配置 cert_der_path + key_der_path 后，服务端复用已落盘证书（跨重启稳定身份）。
 [tls]
 subjects = ["tunnel.example.com"]
 # cert_der_path = "/var/lib/tunnel-server/server.der"
+# key_der_path  = "/var/lib/tunnel-server/server.key.der"
