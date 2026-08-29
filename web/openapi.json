@@ -4,7 +4,7 @@
     "title": "Rust Tunnel API",
     "description": "RSTunnel 管理面 REST API（§21）",
     "license": {
-      "name": ""
+      "name": "MIT"
     },
     "version": "0.1.0"
   },
@@ -472,6 +472,62 @@
         }
       }
     },
+    "/api/v1/setup": {
+      "get": {
+        "tags": [
+          "setup"
+        ],
+        "summary": "查询是否已初始化（`users` 表是否为空）。",
+        "operationId": "setup_status",
+        "responses": {
+          "200": {
+            "description": "Setup status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "setup"
+        ],
+        "summary": "创建初始管理员：仅当系统尚无任何用户时可用；成功后直接签发会话（登录态）。",
+        "operationId": "setup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Initial admin created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Setup already done"
+          },
+          "422": {
+            "description": "Invalid username/password"
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "tags": [
@@ -502,6 +558,9 @@
           },
           "401": {
             "description": "Invalid credentials"
+          },
+          "429": {
+            "description": "Too many failed attempts (locked)"
           }
         }
       }
@@ -1005,6 +1064,36 @@
           "https"
         ]
       },
+      "SetupRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      },
+      "SetupStatusResponse": {
+        "type": "object",
+        "required": [
+          "initialized"
+        ],
+        "properties": {
+          "initialized": {
+            "type": "boolean"
+          }
+        }
+      },
       "TlsMode": {
         "type": "string",
         "enum": [
@@ -1125,6 +1214,10 @@
     {
       "name": "enroll",
       "description": "Agent enrollment"
+    },
+    {
+      "name": "setup",
+      "description": "First-run setup"
     },
     {
       "name": "nodes",

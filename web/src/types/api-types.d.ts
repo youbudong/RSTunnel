@@ -134,6 +134,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询是否已初始化（`users` 表是否为空）。 */
+        get: operations["setup_status"];
+        put?: never;
+        /** 创建初始管理员：仅当系统尚无任何用户时可用；成功后直接签发会话（登录态）。 */
+        post: operations["setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -332,6 +350,14 @@ export interface components {
         };
         /** @enum {string} */
         RouteType: "tcp" | "udp" | "http" | "https";
+        SetupRequest: {
+            email?: string | null;
+            password: string;
+            username: string;
+        };
+        SetupStatusResponse: {
+            initialized: boolean;
+        };
         /** @enum {string} */
         TlsMode: "terminate" | "passthrough" | "disabled";
         UpdateNodeRequest: {
@@ -786,6 +812,64 @@ export interface operations {
             };
         };
     };
+    setup_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Setup status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupStatusResponse"];
+                };
+            };
+        };
+    };
+    setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Initial admin created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Setup already done */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid username/password */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -810,6 +894,13 @@ export interface operations {
             };
             /** @description Invalid credentials */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many failed attempts (locked) */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

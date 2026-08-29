@@ -5,6 +5,7 @@ import { me } from "./auth/auth";
 import { isAuthenticated } from "./auth/auth";
 import { renderApp } from "./layouts/app";
 import { loginPage } from "./pages/login";
+import { setupPage } from "./pages/setup";
 import { dashboardPage } from "./pages/dashboard";
 import { nodesPage, nodeCreatePage } from "./pages/nodes";
 import { routesPage, routeCreatePage, routeEditPage } from "./pages/routes";
@@ -12,6 +13,7 @@ import { route, startRouter } from "./routes/router";
 import { setUser } from "./stores/store";
 
 route("/login", () => loginPage());
+route("/setup", () => setupPage());
 route("/", () => dashboardPage());
 route("/nodes", () => nodesPage());
 route("/nodes/new", () => nodeCreatePage());

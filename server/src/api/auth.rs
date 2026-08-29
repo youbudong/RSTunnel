@@ -29,9 +29,9 @@ pub struct LoginRequest {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct LoginResponse {
-    user: User,
-    access_token: String,
-    token_type: &'static str,
+    pub user: User,
+    pub access_token: String,
+    pub token_type: &'static str,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -234,8 +234,8 @@ fn current_user(state: &AppState, headers: &HeaderMap) -> Option<User> {
     state.sessions.user_by_session(sid)
 }
 
-/// 构造 HttpOnly Secure SameSite 会话 cookie。
-fn session_cookie(session_id: &str) -> HeaderValue {
+/// 构造 HttpOnly Secure SameSite 会话 cookie（login 与 setup 复用）。
+pub(crate) fn session_cookie(session_id: &str) -> HeaderValue {
     let value = format!(
         "{SESSION_COOKIE}={session_id}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age={SESSION_TTL_SECS}"
     );

@@ -264,6 +264,57 @@ impl Db {
         .await
     }
 
+    /// 用户总数（T-20 首次引导用：0 = 未初始化，允许创建初始 admin）。
+    pub async fn count_users(&self) -> DbResult<i64> {
+        sqlx::query_scalar("SELECT COUNT(*) FROM users")
+            .fetch_one(&self.pool)
+            .await
+    }
+
+    /// 创建用户（T-20）。`password_hash` 为 Argon2id 密文（见 [`tunnel_auth::hash_password`]）。
+    pub async fn create_user(
+        &self,
+        id: &str,
+        username: &str,
+        email: Option<&str>,
+        password_hash: &str,
+        disabled: bool,
+        ts: &str,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "INSERT INTO users (id, username, email, password_hash, disabled, created_at, updated_at) \
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(id)
+        .bind(username)
+        .bind(email)
+        .bind(password_hash)
+        .bind(disabled)
+        .bind(ts)
+        .bind(ts)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// 按名字查角色 id（首次引导给新用户指派 `admin` 角色）。不存在返回 `None`。
+    pub async fn find_role_id_by_name(&self, name: &str) -> DbResult<Option<String>> {
+        sqlx::query_scalar("SELECT id FROM roles WHERE name = ?")
+            .bind(name)
+            .fetch_optional(&self.pool)
+            .await
+    }
+
+    /// 给用户指派角色（插入 user_roles 关联）。
+    pub async fn assign_user_role(&self, user_id: &str, role_id: &str) -> DbResult<()> {
+        sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)")
+            .bind(user_id)
+            .bind(role_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     /// 列出全部 Route（含禁用），按 name 排序。供 Route Manager 构建/热更新使用。
     pub async fn list_routes(&self) -> DbResult<Vec<RouteRow>> {
         sqlx::query_as::<_, RouteRow>(

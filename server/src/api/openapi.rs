@@ -20,6 +20,9 @@ use super::AppState;
         crate::api::auth::me,
         // enroll（T-22）
         crate::api::enroll::enroll,
+        // setup（T-20 首次引导）
+        crate::api::setup::setup_status,
+        crate::api::setup::setup,
         // nodes（T-21/T-22）
         crate::api::nodes::list_nodes,
         crate::api::nodes::get_node,
@@ -45,6 +48,8 @@ use super::AppState;
         crate::api::auth::RefreshResponse,
         crate::api::enroll::EnrollRequest,
         crate::api::enroll::EnrollResponse,
+        crate::api::setup::SetupRequest,
+        crate::api::setup::SetupStatusResponse,
         crate::api::nodes::Node,
         crate::api::nodes::CreateNodeRequest,
         crate::api::nodes::UpdateNodeRequest,
@@ -61,6 +66,7 @@ use super::AppState;
     tags(
         (name = "auth", description = "Authentication & sessions"),
         (name = "enroll", description = "Agent enrollment"),
+        (name = "setup", description = "First-run setup"),
         (name = "nodes", description = "Node management"),
         (name = "routes", description = "Route management"),
     ),

@@ -18,7 +18,6 @@ use tunnel_protocol::AuthPayload;
 use tunnel_server::api::AppState;
 
 const USER_ID: &str = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const ROLE_ID: &str = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const NOW: &str = "2026-08-27T00:00:00Z";
 
 async fn seeded_db() -> Db {
@@ -37,15 +36,15 @@ async fn seeded_db() -> Db {
     .await
     .unwrap();
 
-    tunnel_db::sqlx::query("INSERT INTO roles (id, name) VALUES (?, 'admin')")
-        .bind(ROLE_ID)
-        .execute(db.pool())
+    // admin 角色由迁移（0003_seed_roles）种入，按 name 复用。
+    let role_id: String = tunnel_db::sqlx::query_scalar("SELECT id FROM roles WHERE name = 'admin'")
+        .fetch_one(db.pool())
         .await
         .unwrap();
 
     tunnel_db::sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)")
         .bind(USER_ID)
-        .bind(ROLE_ID)
+        .bind(&role_id)
         .execute(db.pool())
         .await
         .unwrap();

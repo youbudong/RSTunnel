@@ -13,6 +13,7 @@ pub mod nodes;
 pub mod openapi;
 pub mod rbac;
 pub mod routes;
+pub mod setup;
 pub mod ws;
 
 use std::path::PathBuf;
@@ -117,6 +118,7 @@ pub fn router(state: AppState) -> Router<()> {
     let app = Router::new()
         .merge(auth::router())
         .merge(enroll::router())
+        .merge(setup::router())
         .merge(health::router())
         .merge(metrics::router())
         .merge(openapi::router())

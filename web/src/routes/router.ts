@@ -1,6 +1,6 @@
 //! 哈希路由（T-24）：`#/nodes`、`#/routes/:id/edit` 等，含登录守卫。
 
-import { isAuthenticated } from "../auth/auth";
+import { ensureSetupStatus, isAuthenticated } from "../auth/auth";
 import { el } from "../components/ui";
 import { errMessage } from "../api/client";
 import { connectEvents } from "../websocket/ws";
@@ -54,11 +54,25 @@ export async function startRouter(): Promise<void> {
     if (!view) return;
 
     const path = currentPath();
-    if (!isAuthenticated() && path !== "/login") {
-      go("/login");
-      return;
+    // 未登录：按「是否已初始化」分流到 setup（首次引导）或 login。
+    if (!isAuthenticated()) {
+      if (path === "/setup") {
+        if (await ensureSetupStatus()) {
+          go("/login");
+          return;
+        }
+      } else if (path === "/login") {
+        if (!(await ensureSetupStatus())) {
+          go("/setup");
+          return;
+        }
+      } else {
+        go((await ensureSetupStatus()) ? "/login" : "/setup");
+        return;
+      }
     }
-    if (isAuthenticated() && path === "/login") {
+    // 已登录访问登录/引导页 → 回首页。
+    if (isAuthenticated() && (path === "/login" || path === "/setup")) {
       go("/");
       return;
     }

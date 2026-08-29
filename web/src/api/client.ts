@@ -14,6 +14,8 @@ export type CreateRouteRequest = Schemas["CreateRouteRequest"];
 export type UpdateRouteRequest = Schemas["UpdateRouteRequest"];
 export type LoginResponse = Schemas["LoginResponse"];
 export type MeResponse = Schemas["MeResponse"];
+export type SetupStatusResponse = Schemas["SetupStatusResponse"];
+export type SetupRequest = Schemas["SetupRequest"];
 export type CredentialResponse = Schemas["CredentialResponse"];
 export type RouteType = Schemas["RouteType"];
 export type TlsMode = Schemas["TlsMode"];
@@ -83,6 +85,9 @@ export const api = {
     request<LoginResponse>("POST", "/auth/login", body),
   logout: () => request<void>("POST", "/auth/logout"),
   me: () => request<MeResponse>("GET", "/auth/me"),
+
+  setupStatus: () => request<SetupStatusResponse>("GET", "/api/v1/setup"),
+  setup: (body: SetupRequest) => request<LoginResponse>("POST", "/api/v1/setup", body),
 
   listNodes: () => request<Node[]>("GET", "/api/v1/nodes"),
   createNode: (body: CreateNodeRequest) =>

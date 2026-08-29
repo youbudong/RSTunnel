@@ -11,8 +11,6 @@ use tunnel_db::Db;
 use tunnel_server::api::AppState;
 
 const NOW: &str = "2026-08-27T00:00:00Z";
-const ROLE_ADMIN: &str = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01";
-const ROLE_VIEWER: &str = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa03";
 const NODE_ID: &str = "22222222-2222-4222-8222-222222222222";
 const ROUTE_ID: &str = "33333333-3333-4333-8333-333333333333";
 
@@ -20,16 +18,9 @@ async fn seeded_db() -> Db {
     let db = Db::connect_memory().await.unwrap();
     db.migrate().await.unwrap();
 
-    for (id, name) in [(ROLE_ADMIN, "admin"), (ROLE_VIEWER, "viewer")] {
-        tunnel_db::sqlx::query("INSERT INTO roles (id, name) VALUES (?, ?)")
-            .bind(id)
-            .bind(name)
-            .execute(db.pool())
-            .await
-            .unwrap();
-    }
-    insert_user(&db, "user-admin", "admin", "adminpass", ROLE_ADMIN).await;
-    insert_user(&db, "user-viewer", "viewer", "view-pass", ROLE_VIEWER).await;
+    // roles 由迁移（0003_seed_roles）种入，按 name 复用。
+    insert_user(&db, "user-admin", "admin", "adminpass", "admin").await;
+    insert_user(&db, "user-viewer", "viewer", "view-pass", "viewer").await;
 
     // 一个 node + 一个 route，供 route 作用域 ACL 规则引用。
     tunnel_db::sqlx::query(
@@ -58,7 +49,7 @@ async fn seeded_db() -> Db {
     db
 }
 
-async fn insert_user(db: &Db, id: &str, username: &str, password: &str, role_id: &str) {
+async fn insert_user(db: &Db, id: &str, username: &str, password: &str, role_name: &str) {
     tunnel_db::sqlx::query(
         "INSERT INTO users (id, username, email, password_hash, disabled, created_at, updated_at) \
          VALUES (?, ?, NULL, ?, 0, ?, ?)",
@@ -71,6 +62,13 @@ async fn insert_user(db: &Db, id: &str, username: &str, password: &str, role_id:
     .execute(db.pool())
     .await
     .unwrap();
+
+    // 角色由迁移（0003_seed_roles）种入，按 name 取 id。
+    let role_id: String = tunnel_db::sqlx::query_scalar("SELECT id FROM roles WHERE name = ?")
+        .bind(role_name)
+        .fetch_one(db.pool())
+        .await
+        .unwrap();
     tunnel_db::sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)")
         .bind(id)
         .bind(role_id)
