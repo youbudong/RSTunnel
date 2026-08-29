@@ -1,5 +1,8 @@
 # Release（T-45/§125）：tag（v*）触发，产出三平台三二进制产物 + Docker 多架构镜像。
 # 产物：tunnel-server / tunnel-agent / tunnel-cli；镜像：ghcr.io/<owner>/tunnel-{server,agent}。
+# 构建提速：amd64 镜像用 cargo 缓存挂载 + gha 缓存（依赖只编译一次）；arm64 镜像复用
+# `cross` 交叉编译的二进制组装（rustc 以 amd64 运行，无 QEMU 仿真下的 Rust 编译），
+# 最后用 `imagetools create` 合成多架构 manifest。
 
 name: Release
 
@@ -23,8 +26,6 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
           - target: x86_64-pc-windows-msvc
             os: windows-latest
           - target: x86_64-apple-darwin
@@ -40,18 +41,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build (native)
-        if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }} -p tunnel-server -p tunnel-agent -p tunnel-cli
-
-      - name: Install cross (aarch64-linux only)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cross
-
-      - name: Build via cross (aarch64-linux only)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: cross build --release --target ${{ matrix.target }} -p tunnel-server -p tunnel-agent -p tunnel-cli
 
       - name: Package (unix)
         if: runner.os != 'Windows'
@@ -80,8 +70,66 @@ jobs:
             rstunnel-*.zip
           if-no-files-found: error
 
-  docker:
-    name: docker (${{ matrix.image }})
+  # aarch64-linux 独立 job：`cross` 原生交叉编译（rustc 以 amd64 运行，无 QEMU），
+  # 产物同时打包 tarball（发布用）与原始二进制（Docker arm64 组装用）。
+  binaries-aarch64:
+    name: build (aarch64-unknown-linux-gnu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Build via cross
+        run: cross build --release --target aarch64-unknown-linux-gnu -p tunnel-server -p tunnel-agent -p tunnel-cli
+      - name: Package tarball
+        run: |
+          mkdir -p dist
+          for bin in tunnel-server tunnel-agent tunnel-cli; do
+            cp "target/aarch64-unknown-linux-gnu/release/$bin" "dist/$bin"
+          done
+          tar -czf "rstunnel-aarch64-unknown-linux-gnu.tar.gz" -C dist .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-aarch64-unknown-linux-gnu
+          path: rstunnel-aarch64-unknown-linux-gnu.tar.gz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aarch64-linux-binaries
+          path: |
+            target/aarch64-unknown-linux-gnu/release/tunnel-server
+            target/aarch64-unknown-linux-gnu/release/tunnel-agent
+            target/aarch64-unknown-linux-gnu/release/tunnel-cli
+          if-no-files-found: error
+
+  # Web 管理后台静态资源：原生构建一次，供 arm64 server 镜像组装（避免 QEMU 下跑 node）。
+  web:
+    name: web (dist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          if-no-files-found: error
+
+  # amd64 镜像：仍在 `rust:1.88-slim-bookworm` 内编译（保证与 bookworm runtime 的 glibc 一致），
+  # 靠 cargo 缓存挂载 + gha 缓存让依赖只编译一次。
+  docker-amd64:
+    name: docker amd64 (${{ matrix.image }})
     strategy:
       fail-fast: false
       matrix:
@@ -96,6 +144,42 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64
+          cache-from: type=gha,scope=release
+          cache-to: type=gha,scope=release,mode=max
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest-amd64
+
+  # arm64 镜像：复用 `cross` 交叉编译的二进制 + 预构建 web，组装 runtime 镜像，无 Rust 编译。
+  docker-arm64:
+    name: docker arm64 (${{ matrix.image }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: tunnel-server
+            runtime: deploy/docker/Dockerfile.server.runtime
+            with_web: true
+          - image: tunnel-agent
+            runtime: deploy/docker/Dockerfile.agent.runtime
+            with_web: false
+    runs-on: ubuntu-latest
+    needs: [binaries-aarch64, web]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -103,21 +187,63 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # ghcr 镜像名须全小写；GitHub owner 名默认为小写。
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: aarch64-linux-binaries
+          path: arm64-bin
+      - uses: actions/download-artifact@v4
+        if: matrix.with_web
+        with:
+          name: web-dist
+          path: webdist
+      - name: Stage arm64 context
+        run: |
+          mkdir -p ctx
+          cp arm64-bin/target/aarch64-unknown-linux-gnu/release/tunnel-server ctx/
+          cp arm64-bin/target/aarch64-unknown-linux-gnu/release/tunnel-agent ctx/
+          cp arm64-bin/target/aarch64-unknown-linux-gnu/release/tunnel-cli ctx/
+          if [ "${{ matrix.with_web }}" = "true" ]; then
+            mkdir -p ctx/dist
+            cp -r webdist/web/dist/. ctx/dist/
+          fi
+
       - uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ${{ matrix.dockerfile }}
+          context: ./ctx
+          file: ${{ matrix.runtime }}
           push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.ref_name }}
+          platforms: linux/arm64
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest-arm64
+
+  # 合成多架构 manifest：`latest` 与 `ref_name` 指向 amd64 + arm64 两个平台。
+  docker-merge:
+    name: docker merge
+    runs-on: ubuntu-latest
+    needs: [docker-amd64, docker-arm64]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge multi-arch manifests
+        run: |
+          for img in tunnel-server tunnel-agent; do
+            docker buildx imagetools create \
+              -t "ghcr.io/${{ github.repository_owner }}/${img}:latest" \
+              -t "ghcr.io/${{ github.repository_owner }}/${img}:${{ github.ref_name }}" \
+              "ghcr.io/${{ github.repository_owner }}/${img}:latest-amd64" \
+              "ghcr.io/${{ github.repository_owner }}/${img}:latest-arm64"
+          done
 
   release:
     name: github release
     runs-on: ubuntu-latest
-    needs: artifacts
+    needs: [artifacts, binaries-aarch64]
     permissions:
       contents: write
     steps:

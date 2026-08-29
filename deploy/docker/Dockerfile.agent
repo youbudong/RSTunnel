@@ -16,7 +16,10 @@ COPY agent ./agent
 COPY cli ./cli
 COPY migrations ./migrations
 
-RUN cargo build --release -p tunnel-agent
+# 缓存挂载：cargo registry + target 跨发布复用，依赖只编译一次（T-45/§125 构建提速）。
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/build/target \
+    cargo build --release -p tunnel-agent
 
 # ---- runtime stage --------------------------------------------------------
 FROM debian:bookworm-slim

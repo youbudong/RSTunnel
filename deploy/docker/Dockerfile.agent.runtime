@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+
+# ---- runtime-only（arm64 组装用）------------------------------------------
+# 与 Dockerfile.agent 的 runtime 阶段一致，但不在此编译 Rust：二进制由 CI
+# `binaries-aarch64` job 用 `cross` 原生交叉编译产出，经 build-context 注入。
+FROM debian:bookworm-slim
+
+# libsqlite3-0：tunnel-core → tunnel-db → sqlx 的运行时依赖；passwd：创建非 root 用户。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 passwd \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g 65532 tunnel \
+    && useradd -u 65532 -g tunnel -s /usr/sbin/nologin -d /var/lib/tunnel-agent tunnel \
+    && mkdir -p /var/lib/tunnel-agent /etc/tunnel/certs \
+    && chown -R 65532:65532 /var/lib/tunnel-agent /etc/tunnel/certs
+
+COPY tunnel-agent /usr/local/bin/tunnel-agent
+
+USER 65532:65532
+
+ENTRYPOINT ["tunnel-agent"]
+CMD ["--config", "/etc/tunnel/agent.toml"]

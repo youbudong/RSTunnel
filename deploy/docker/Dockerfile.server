@@ -19,7 +19,10 @@ COPY cli ./cli
 COPY migrations ./migrations
 
 # server 镜像同时携带 tunnel-cli，供 `init` 服务跑 `seed` 引导。
-RUN cargo build --release -p tunnel-server -p tunnel-cli
+# 缓存挂载：cargo registry + target 跨发布复用，依赖只编译一次（T-45/§125 构建提速）。
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/build/target \
+    cargo build --release -p tunnel-server -p tunnel-cli
 
 # ---- web build stage ------------------------------------------------------
 # Web 管理后台（T-24）：构建 `web/dist`，由 runtime 阶段 COPY 进 server 镜像，
