@@ -17,8 +17,7 @@ use super::{internal, map_db_error, now_rfc3339, write_audit, ApiError, AppState
 use crate::session::User;
 
 pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/api/v1/setup", get(setup_status).post(setup))
+    Router::new().route("/api/v1/setup", get(setup_status).post(setup))
 }
 
 #[derive(Debug, Serialize, ToSchema)]
