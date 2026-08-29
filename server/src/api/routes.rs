@@ -341,6 +341,31 @@ async fn check_conflicts(
     Ok(())
 }
 
+/// §28：路由变更后使受影响 Node 的 config_version +1（`config_status='pending'`），
+/// 并立即向在线 Agent 推送全量路由快照（无需重连即收敛）；离线 Node 仅版本 +1，
+/// 待重连时由握手快照收敛。
+async fn bump_and_push(state: &AppState, node_id: &str) {
+    let ts = now_rfc3339();
+    let version = match state.db.bump_config_version(node_id, &ts).await {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::warn!(node_id = node_id, error = %e, "bump config_version failed");
+            return;
+        }
+    };
+    let Ok(node) = Uuid::parse_str(node_id) else {
+        tracing::warn!(node_id = node_id, "invalid node id, skip config push");
+        return;
+    };
+    if let Err(e) = state
+        .config_sync
+        .push_snapshot(&state.db, node, version.max(0) as u64)
+        .await
+    {
+        tracing::warn!(node_id = node_id, error = %e, "push config snapshot failed");
+    }
+}
+
 fn route_response(row: RouteDetailRow) -> Route {
     let route_type = parse_route_type(&row.route_type).unwrap_or(RouteType::Tcp);
     let limits = row
@@ -466,8 +491,8 @@ async fn create_route(
         .await
         .map_err(|e| map_db_error(e, "route"))?;
 
-    // §28：路由变更使受影响 Node 的 config_version += 1（离线 Node 保持 pending）。
-    let _ = state.db.bump_config_version(&input.node_id, &ts).await;
+    // §28：路由变更使受影响 Node 的 config_version += 1，并推快照给在线 Agent。
+    bump_and_push(&state, &input.node_id).await;
 
     let route = state
         .db
@@ -591,10 +616,10 @@ async fn update_route(
         .await
         .map_err(|e| map_db_error(e, "route"))?;
 
-    // §28：受影响 Node 版本 +1；换 node 时新旧 node 都要重算。
-    let _ = state.db.bump_config_version(&input.node_id, &ts).await;
+    // §28：受影响 Node 版本 +1 并推快照；换 node 时新旧 node 都要重算。
+    bump_and_push(&state, &input.node_id).await;
     if existing.node_id != input.node_id {
-        let _ = state.db.bump_config_version(&existing.node_id, &ts).await;
+        bump_and_push(&state, &existing.node_id).await;
     }
 
     let route = state
@@ -644,9 +669,8 @@ async fn delete_route(
         .await
         .map_err(internal)?
         .ok_or_else(|| ApiError::not_found("ROUTE_NOT_FOUND", "route does not exist"))?;
-    let ts = now_rfc3339();
     state.db.delete_route(&id).await.map_err(internal)?;
-    let _ = state.db.bump_config_version(&existing.node_id, &ts).await;
+    bump_and_push(&state, &existing.node_id).await;
     write_audit(&state, Some(&user.id), "route.delete", "route", &id, None).await?;
     state.events.publish(
         ROUTE_DELETED,
@@ -715,7 +739,7 @@ async fn set_enabled(
         .set_route_enabled(&id, enabled, &ts)
         .await
         .map_err(internal)?;
-    let _ = state.db.bump_config_version(&existing.node_id, &ts).await;
+    bump_and_push(&state, &existing.node_id).await;
     write_audit(
         state,
         Some(user_id),

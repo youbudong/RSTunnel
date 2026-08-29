@@ -26,6 +26,7 @@ use serde::Serialize;
 use tunnel_db::Db;
 
 use crate::acl_store::AclStore;
+use crate::config_sync::ConfigSync;
 use crate::event::EventBus;
 use crate::login_limiter::LoginLimiter;
 use crate::readiness::Readiness;
@@ -49,6 +50,9 @@ pub struct AppState {
     /// Web 管理后台静态目录（T-24/§153）：`Some(dist)` 时从 internal 端口同源托管 SPA；
     /// `None` 时禁用（仅 API/Swagger，前端需另跑 vite 代理）。来自 `[internal].web_dir`。
     pub web_dir: Option<PathBuf>,
+    /// 配置下发（T-18/§28）：与 QUIC 数据面共享同一 [`ConfigSync`]，路由变更后据此向在线
+    /// Agent 主动推全量快照（无需重连即收敛）。生产 main 通过 [`Self::with_config_sync`] 注入。
+    pub config_sync: Arc<ConfigSync>,
 }
 
 impl AppState {
@@ -86,6 +90,7 @@ impl AppState {
             allow_unsafe_targets: false,
             readiness: Arc::new(Readiness::new()),
             web_dir: None,
+            config_sync: Arc::new(ConfigSync::new()),
         }
     }
 
@@ -105,6 +110,13 @@ impl AppState {
     /// `None`（默认）时禁用静态托管。
     pub fn with_web_dir(mut self, dir: Option<PathBuf>) -> Self {
         self.web_dir = dir;
+        self
+    }
+
+    /// 注入与 QUIC 数据面共享的配置同步器（T-18）。生产 main 传 `server.config_sync()`，
+    /// 使 REST 路由变更能推送到在线 Agent。
+    pub fn with_config_sync(mut self, config_sync: Arc<ConfigSync>) -> Self {
+        self.config_sync = config_sync;
         self
     }
 }

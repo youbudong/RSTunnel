@@ -206,7 +206,8 @@ async fn run(args: &Args) -> Result<()> {
         )
         .with_allow_unsafe_targets(cfg.security.allow_unsafe_targets)
         .with_readiness(Arc::clone(&readiness))
-        .with_web_dir(web_dir),
+        .with_web_dir(web_dir)
+        .with_config_sync(server.config_sync()),
     );
     tracing::info!(%internal_addr, "admin API listening");
     tokio::spawn(async move {
