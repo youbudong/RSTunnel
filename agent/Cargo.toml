@@ -26,7 +26,7 @@ rcgen.workspace = true
 tokio-rustls.workspace = true
 tunnel-auth.workspace = true
 tunnel-db.workspace = true
-tunnel-server = { version = "0.2.2", path = "../server" }
+tunnel-server = { path = "../server" }
 
 [lints]
 workspace = true
