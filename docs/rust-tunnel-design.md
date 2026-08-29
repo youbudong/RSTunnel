@@ -2803,6 +2803,11 @@ WebSocket
 Web Dashboard
 ```
 
+实现要点：路由变更 DB commit 后，除了 `config_version + 1` 并向在线 Agent 推全量快照（§28），
+还触发 server 端 `ConfigManager::reload`（load → validate → replace → broadcast）；main 中的
+订阅任务据此 reconcile 数据面路由表——HTTP/HTTPS 走 `HostTable`、TCP 走 `TcpProxy::reconcile`
+重建监听。UDP 监听暂不支持热更新。
+
 ---
 
 # 79. Server 内部模块
@@ -3459,6 +3464,7 @@ unbounded cache
 
 ```text
 connect timeout       10s
+open result timeout   15s
 idle TCP timeout      disabled/route configurable
 UDP idle timeout      60s
 HTTP request timeout  60s
