@@ -41,7 +41,7 @@ docker compose -f deploy/docker/docker-compose.yml up --build
 curl -H "Host: app.example.com" http://localhost:8080/
 ```
 
-管理面（容器内回环，未对外发布）：Web 管理后台 `http://127.0.0.1:8080/`，以及 `http://127.0.0.1:8080/health`、`/ready`、`/metrics`、`/docs`（Swagger UI）。
+管理面（容器内回环，未对外发布）：Web 管理后台 `http://127.0.0.1:8080/`（首次打开会先引导创建管理员账户），以及 `http://127.0.0.1:8080/health`、`/ready`、`/metrics`、`/docs`（Swagger UI）。
 
 ### 方式二：本地开发
 
@@ -134,12 +134,13 @@ server 在 `[internal].bind`（示例 `127.0.0.1:8080`）提供：
 | `GET /docs` | Swagger UI（`/openapi.json` 为原始 OpenAPI 文档） |
 | `GET /ws` | WebSocket（订阅 node/route/config 事件） |
 | `POST /auth/login` `/logout` `/refresh`，`GET /auth/me` | 会话认证（HttpOnly cookie + 短时 Bearer） |
+| `GET/POST /api/v1/setup` | 首次引导：`users` 表为空时创建初始 admin（创建后自锁 409） |
 | `POST /enroll` | Agent 用 bootstrap token 换取运行时凭据（一次性） |
 | `/api/v1/nodes` `/api/v1/routes`（CRUD） | Node / Route 管理 |
 | `POST /api/v1/nodes/:id/credentials` | 给 Node 签发凭据（`type=token` 或 `bootstrap`） |
 | `/api/v1/acl` `/api/v1/audit` | ACL 规则、审计日志 |
 
-> 管理端点（`/api/v1/*`）需要登录：先 `POST /auth/login` 拿 session cookie，或带 `Authorization: Bearer <access_token>`。完整契约见 [`docs/api.md`](docs/api.md)。
+> 管理端点（`/api/v1/*`）需要登录：先 `POST /auth/login` 拿 session cookie，或带 `Authorization: Bearer <access_token>`。唯一例外是 `/api/v1/setup`（首次引导，仅在 `users` 表为空时开放）。完整契约见 [`docs/api.md`](docs/api.md)。
 
 ### 路由类型
 

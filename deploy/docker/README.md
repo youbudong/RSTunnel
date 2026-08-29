@@ -21,7 +21,8 @@ curl -H "Host: app.example.com" http://localhost:8080/
 
 管理面（仅回环，不对外发布）：
 
-- Web 管理后台：浏览器打开 `http://127.0.0.1:8080/`（server 从 `web_dir` 同源托管 SPA）
+- Web 管理后台：浏览器打开 `http://127.0.0.1:8080/`（server 从 `web_dir` 同源托管 SPA）。
+  首次打开时 `users` 表为空，会先显示「初始化管理员账户」页，创建第一个 admin 后进入登录态。
 - 探针 / 指标：
 
 ```bash

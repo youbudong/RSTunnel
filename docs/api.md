@@ -27,6 +27,19 @@ POST /auth/refresh
 GET  /auth/me         → { "id", "username", "email", "roles": ["admin"], "permissions": [...] }
 ```
 
+### 首次引导（first-run setup）
+
+`users` 表为空时，管理后台首次打开走初始化流程（无需登录）：
+
+```
+GET  /api/v1/setup   → { "initialized": bool }
+POST /api/v1/setup   { "username", "password", "email"? } → { "user", "access_token", "token_type" }
+```
+
+- 密码 ≥ 8 位，Argon2id 哈希入库；角色固定为 `admin`。
+- 成功后直接签发会话（等同登录），随后 `GET /api/v1/setup` 返回 `{ "initialized": true }`。
+- 已有任何用户后再 `POST` → 409 `SETUP_ALREADY_DONE`。
+
 ## 4. Enrollment（Agent 注册）
 
 ```

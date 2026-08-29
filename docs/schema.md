@@ -198,8 +198,9 @@ CREATE INDEX idx_stats_route ON traffic_stats(route_id, window_start);
 
 ---
 
-## 默认种子数据（tunnel-server init 时写入）
+## 默认种子数据（tunnel-server 迁移 / 首次引导时写入）
 
-- `roles`：`admin`、`operator`、`viewer`（设计文档 §31）。
-- `users`：初始 admin（`init` 时交互设置密码，Argon2id hash）。
+- `roles`：`admin`、`operator`、`viewer`（设计文档 §31），由迁移 `0003_seed_roles` 幂等种入。
+- `users`：初始 admin 由首次引导创建——`users` 表为空时，Web 管理后台 `POST /api/v1/setup`
+  创建第一个 `admin`（密码 Argon2id hash），创建后该端点自锁（409）。
 - 生成 server identity / CA（TLS 证书）与首个 secret。
