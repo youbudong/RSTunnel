@@ -366,6 +366,15 @@ async fn bump_and_push(state: &AppState, node_id: &str) {
     }
 }
 
+/// T-17/T-19：路由变更后重载 server 端配置快照。`ConfigManager::reload` 会
+/// `load → validate → replace → broadcast`，main 中的订阅任务据此 reconcile
+/// HostTable（HTTP/HTTPS）与 TcpProxy 监听（TCP）。
+async fn reload_config(state: &AppState) {
+    if let Err(e) = state.config.reload(&state.db).await {
+        tracing::warn!(error = %e, "reload server config after route change failed");
+    }
+}
+
 fn route_response(row: RouteDetailRow) -> Route {
     let route_type = parse_route_type(&row.route_type).unwrap_or(RouteType::Tcp);
     let limits = row
@@ -493,6 +502,7 @@ async fn create_route(
 
     // §28：路由变更使受影响 Node 的 config_version += 1，并推快照给在线 Agent。
     bump_and_push(&state, &input.node_id).await;
+    reload_config(&state).await;
 
     let route = state
         .db
@@ -621,6 +631,7 @@ async fn update_route(
     if existing.node_id != input.node_id {
         bump_and_push(&state, &existing.node_id).await;
     }
+    reload_config(&state).await;
 
     let route = state
         .db
@@ -671,6 +682,7 @@ async fn delete_route(
         .ok_or_else(|| ApiError::not_found("ROUTE_NOT_FOUND", "route does not exist"))?;
     state.db.delete_route(&id).await.map_err(internal)?;
     bump_and_push(&state, &existing.node_id).await;
+    reload_config(&state).await;
     write_audit(&state, Some(&user.id), "route.delete", "route", &id, None).await?;
     state.events.publish(
         ROUTE_DELETED,
@@ -740,6 +752,7 @@ async fn set_enabled(
         .await
         .map_err(internal)?;
     bump_and_push(&state, &existing.node_id).await;
+    reload_config(&state).await;
     write_audit(
         state,
         Some(user_id),

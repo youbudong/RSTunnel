@@ -237,6 +237,17 @@ impl HostTable {
             .map(|(_, v)| v)
     }
 
+    /// 热更新（T-19）：按全量路由重建 Host 表（仅启用的 HTTP/HTTPS 路由）。
+    /// 与启动时构建一致；删除/禁用/改动主机名的路由随全量重建自然移除或更新。
+    pub fn reconcile(&self, routes: &[ServerRoute]) {
+        self.by_host.clear();
+        for route in routes.iter().filter(|r| r.enabled) {
+            if let Some(host) = route.host_key() {
+                self.by_host.insert(host, Arc::new(route.clone()));
+            }
+        }
+    }
+
     /// 全部 Host 路由快照。
     pub fn routes(&self) -> Vec<Arc<ServerRoute>> {
         self.by_host.iter().map(|r| r.value().clone()).collect()

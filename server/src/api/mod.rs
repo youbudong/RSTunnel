@@ -26,6 +26,7 @@ use serde::Serialize;
 use tunnel_db::Db;
 
 use crate::acl_store::AclStore;
+use crate::config::ConfigManager;
 use crate::config_sync::ConfigSync;
 use crate::event::EventBus;
 use crate::login_limiter::LoginLimiter;
@@ -53,6 +54,9 @@ pub struct AppState {
     /// 配置下发（T-18/§28）：与 QUIC 数据面共享同一 [`ConfigSync`]，路由变更后据此向在线
     /// Agent 主动推全量快照（无需重连即收敛）。生产 main 通过 [`Self::with_config_sync`] 注入。
     pub config_sync: Arc<ConfigSync>,
+    /// 配置管理器（T-17/T-19）：路由变更后调用 [`ConfigManager::reload`]，`replace` 广播使
+    /// main 中的订阅任务 reconcile HostTable / TcpProxy 监听。生产 main 通过 [`Self::with_config`] 注入。
+    pub config: Arc<ConfigManager>,
 }
 
 impl AppState {
@@ -91,6 +95,7 @@ impl AppState {
             readiness: Arc::new(Readiness::new()),
             web_dir: None,
             config_sync: Arc::new(ConfigSync::new()),
+            config: Arc::new(ConfigManager::new()),
         }
     }
 
@@ -117,6 +122,13 @@ impl AppState {
     /// 使 REST 路由变更能推送到在线 Agent。
     pub fn with_config_sync(mut self, config_sync: Arc<ConfigSync>) -> Self {
         self.config_sync = config_sync;
+        self
+    }
+
+    /// 注入配置管理器（T-17/T-19）。生产 main 传与数据面共享的同一实例，路由变更后
+    /// `reload` 广播，使 main 中的订阅任务 reconcile 数据面路由表。
+    pub fn with_config(mut self, config: Arc<ConfigManager>) -> Self {
+        self.config = config;
         self
     }
 }

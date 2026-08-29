@@ -87,7 +87,7 @@ async fn run(args: &Args) -> Result<()> {
     readiness.mark_quic();
 
     // T-17：配置管理器从数据库加载并校验路由快照（ArcSwap 无锁读、原子替换）。
-    let config = ConfigManager::new();
+    let config = Arc::new(ConfigManager::new());
     config.reload(&db).await.context("load config")?;
     readiness.mark_config();
 
@@ -114,14 +114,16 @@ async fn run(args: &Args) -> Result<()> {
             }
         }
     }
-    let proxy = TcpProxy::bind_with_conns_acl_and_limiter(
-        Arc::clone(&routes),
-        server.conns(),
-        Arc::clone(&acl),
-        Arc::clone(&conn_limiter),
-    )
-    .await
-    .context("bind tcp proxy")?;
+    let proxy = Arc::new(
+        TcpProxy::bind_with_conns_acl_and_limiter(
+            Arc::clone(&routes),
+            server.conns(),
+            Arc::clone(&acl),
+            Arc::clone(&conn_limiter),
+        )
+        .await
+        .context("bind tcp proxy")?,
+    );
     let n_listeners = proxy.local_addrs().len();
     tracing::info!(listeners = n_listeners, "TCP listeners started");
     proxy.run();
@@ -167,7 +169,7 @@ async fn run(args: &Args) -> Result<()> {
     let https_addr: SocketAddr = cfg.https.bind.parse().context("parse https bind address")?;
     let https_proxy = HttpsProxy::bind_with_acl_and_limiter(
         https_addr,
-        host_table,
+        Arc::clone(&host_table),
         server.conns(),
         cert_store,
         Arc::clone(&acl),
@@ -177,6 +179,24 @@ async fn run(args: &Args) -> Result<()> {
     .context("bind https proxy")?;
     tracing::info!(addr = %https_proxy.local_addr(), "HTTPS listener started");
     https_proxy.run();
+
+    // T-17/T-19：订阅配置快照广播，路由变更（REST）触发 `ConfigManager::reload` 后，
+    // 此处 reconcile 数据面路由表——HTTP/HTTPS 的 HostTable 与 TCP 的监听（UDP 见下）。
+    {
+        let config = Arc::clone(&config);
+        let host_table = Arc::clone(&host_table);
+        let tcp = Arc::clone(&proxy);
+        let mut rx = config.subscribe();
+        tokio::spawn(async move {
+            while rx.recv().await.is_ok() {
+                let snapshot = config.snapshot();
+                host_table.reconcile(&snapshot.routes);
+                if let Err(e) = tcp.reconcile(&snapshot.routes).await {
+                    tracing::warn!(error = %e, "tcp proxy reconcile failed");
+                }
+            }
+        });
+    }
 
     // T-20：REST API（管理面）监听 internal 地址（回环，不对外发布；§75 生产走 443 HTTPS 入口）。
     let internal_addr: SocketAddr = cfg
@@ -207,7 +227,8 @@ async fn run(args: &Args) -> Result<()> {
         .with_allow_unsafe_targets(cfg.security.allow_unsafe_targets)
         .with_readiness(Arc::clone(&readiness))
         .with_web_dir(web_dir)
-        .with_config_sync(server.config_sync()),
+        .with_config_sync(server.config_sync())
+        .with_config(Arc::clone(&config)),
     );
     tracing::info!(%internal_addr, "admin API listening");
     tokio::spawn(async move {
