@@ -19,7 +19,8 @@ COPY migrations ./migrations
 # 缓存挂载：cargo registry + target 跨发布复用，依赖只编译一次（T-45/§125 构建提速）。
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/build/target \
-    cargo build --release -p tunnel-agent
+    cargo build --release -p tunnel-agent \
+    && cp /build/target/release/tunnel-agent /build/tunnel-agent
 
 # ---- runtime stage --------------------------------------------------------
 FROM debian:bookworm-slim
@@ -33,7 +34,7 @@ RUN apt-get update \
     && mkdir -p /var/lib/tunnel-agent /etc/tunnel/certs \
     && chown -R 65532:65532 /var/lib/tunnel-agent /etc/tunnel/certs
 
-COPY --from=build /build/target/release/tunnel-agent /usr/local/bin/tunnel-agent
+COPY --from=build /build/tunnel-agent /usr/local/bin/tunnel-agent
 
 USER 65532:65532
 
