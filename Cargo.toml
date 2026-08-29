@@ -14,20 +14,20 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 license = "MIT"
 rust-version = "1.88"
 
 # ---- 内部 crate（path 依赖）----
 [workspace.dependencies]
-tunnel-common = { version = "0.2.5", path = "crates/tunnel-common" }
-tunnel-protocol = { version = "0.2.5", path = "crates/tunnel-protocol" }
-tunnel-config = { version = "0.2.5", path = "crates/tunnel-config" }
-tunnel-auth = { version = "0.2.5", path = "crates/tunnel-auth" }
-tunnel-db = { version = "0.2.5", path = "crates/tunnel-db" }
-tunnel-metrics = { version = "0.2.5", path = "crates/tunnel-metrics" }
-tunnel-core = { version = "0.2.5", path = "crates/tunnel-core" }
+tunnel-common = { version = "0.2.6", path = "crates/tunnel-common" }
+tunnel-protocol = { version = "0.2.6", path = "crates/tunnel-protocol" }
+tunnel-config = { version = "0.2.6", path = "crates/tunnel-config" }
+tunnel-auth = { version = "0.2.6", path = "crates/tunnel-auth" }
+tunnel-db = { version = "0.2.6", path = "crates/tunnel-db" }
+tunnel-metrics = { version = "0.2.6", path = "crates/tunnel-metrics" }
+tunnel-core = { version = "0.2.6", path = "crates/tunnel-core" }
 
 # ---- 外部依赖（版本在 workspace 统一）----
 # async runtime
