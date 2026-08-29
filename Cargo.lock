@@ -2892,7 +2892,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-agent"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "axum",
@@ -2918,7 +2918,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-auth"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "argon2",
  "rand 0.8.8",
@@ -2928,7 +2928,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-cli"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -2943,7 +2943,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-common"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "thiserror 1.0.69",
  "tracing-subscriber",
@@ -2952,7 +2952,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-config"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "serde",
  "thiserror 1.0.69",
@@ -2962,7 +2962,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-core"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "dashmap",
@@ -2978,7 +2978,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-db"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "sqlx",
  "tokio",
@@ -2986,14 +2986,14 @@ dependencies = [
 
 [[package]]
 name = "tunnel-metrics"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "prometheus",
 ]
 
 [[package]]
 name = "tunnel-protocol"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -3004,7 +3004,7 @@ dependencies = [
 
 [[package]]
 name = "tunnel-server"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "arc-swap",
